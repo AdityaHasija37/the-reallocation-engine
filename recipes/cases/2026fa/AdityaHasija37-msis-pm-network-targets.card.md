@@ -47,6 +47,10 @@ skip?** And say plainly when the answer is "a person needs to check this first."
 - **E-Verify.** STEM OPT requires an E-Verify employer. This is not checked for anyone.
 - **When the sponsorship happened.** The visa counts have no stated years. "Sponsored a
   PM" might mean nine years ago.
+- **How many approvals were product roles.** The counts are company-wide. Datadog's 340
+  approvals are mostly engineers; "PRODUCT MANAGER" is one of its top five titles.
+  "Proven" means a strong sponsor that has sponsored a product title, not one that has
+  sponsored many PMs.
 - **How the employer files the role.** There is no "Product Manager" occupation code;
   employers choose among several, at different wage levels.
 - **Whether the posting is a real hire.** A listed posting can still be a ghost job.

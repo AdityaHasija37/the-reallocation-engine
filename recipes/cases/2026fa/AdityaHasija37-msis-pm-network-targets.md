@@ -170,6 +170,15 @@ npm run ats:liveness -- "<posting url from out/report.md>"
   A company that sponsored a PM in 2016 looks the same as one that did in 2025.
   [TODO: DATA SOURCE] The fiscal-year range behind `Total Approvals`, from the data's
   maintainers or its build script, recorded in the data README.
+- **How many of the approvals were for product roles.** `Total Approvals` is
+  company-wide; a product title only has to appear in `top_job_titles_sponsored`. Hand
+  cross-check (AdityaHasija37, 2026-10-03): Datadog's 340 approvals sit beside five top
+  titles, four of them engineering or legal, one `PRODUCT MANAGER`. "Proven" means a
+  proven sponsor that has sponsored at least one product title, not a proven sponsor
+  *of product managers*.
+- Whether a product role is **directly related to the MSIS degree** for STEM OPT
+  (employer training plan, Form I-983). Business-heavy PM roles may not qualify. Not in
+  any repo data.
 - Which occupation code (SOC) the employer files product roles under, or at what wage
   level. There is no "Product Manager" SOC; the report shows medians for common filing
   codes as context only.

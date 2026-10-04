@@ -1565,6 +1565,7 @@
   "cannot_verify": [
     "Whether this employer is enrolled in E-Verify (required for STEM OPT) — no E-Verify data in the repo.",
     "Which fiscal years the H-1B approval counts cover — not stated in the data documentation.",
+    "How many of the approvals were for product roles: the counts are company-wide, and a product title only has to appear among the top sponsored titles (Datadog: 340 approvals, mostly engineering titles, one \"PRODUCT MANAGER\").",
     "Which occupation code (SOC) the company files product roles under, or at what wage level.",
     "Whether a sponsored \"Product Manager\" title was the same seniority or team as today's posting.",
     "Whether a live posting is actually being hired for (a listed posting can still be a ghost job).",

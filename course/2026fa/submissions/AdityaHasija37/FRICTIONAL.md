@@ -265,3 +265,88 @@ Raw terminal output for Phase 0 is saved outside the repo in `~/PEAI_Class/basel
   Checked by hand with `grep -c "\[TODO"` = 3.
 - Status after this step: 10/10 tests pass, conformance OK on all new files,
   `npm run verify` passes, pii-scan shows only the baseline finding. Nothing committed.
+
+---
+
+## 2026-10-03 — First commit
+
+- [ME] Set a repo-only git identity to my GitHub noreply address before the first commit
+  (the AI flagged that my university email would otherwise be public in commit history).
+- [AI, approved by me] Local commit `dedb123` on `contrib/2026fa-AdityaHasija37-msis-pm-network-targets`:
+  37 files, all under my namespaces. Not pushed.
+- `node scripts/pii-scan.mjs --diff main` (the check CI runs on branch history): **clean**.
+
+---
+
+## 2026-10-03 — Deliberate break attempts (Phase 4)
+
+[ME] Chose break attempts 1 and 2 from four the AI offered, and ran every command myself
+in my terminal. [AI] wrote the commands and had dry-run them on scratch copies first.
+Expectations: not written down beforehand (recorded honestly, not reconstructed).
+
+### Break 1 — fetch failure routed to "network"
+- [ME] Planted the bug with `sed` (one line: `route: 'board-unknown'` → `'network'` on the
+  fetch-failed branch), confirmed with `git diff`, ran the tests: `not ok 8`,
+  `expected: 0 / actual: 1`, `# pass 9 / # fail 1`. Restored with `git restore`; tests back
+  to 10/10.
+- [AI] Checked *why* test 8 failed: `actual: 1` is the CLI's exit code. The report writer
+  crashed (`TypeError: Cannot read properties of undefined (reading 'value') at
+  renderReport`) because a "network" row assumes a board was read. So the bug was caught
+  by an incidental crash, before the assertion written for it (`DISCORD INC →
+  board-unknown`) was reached.
+- Learned: the intended guard was never exercised. If the report were made more tolerant
+  of missing values, only the route assertion would remain.
+  [Open: add a test that checks the route before any rendering can crash.]
+
+### Break 2 — delete a gate value and score it directly
+- [ME] Removed `liveness` from a real Apply role (Datadog, "Product Manager II, AI & Data
+  Security") and scored it with `scripts/score/role-scorer.mjs`.
+  Saw: `Apply 0.525`, gate trace `{"factor":"liveness","multiplier":1,"source":"record"}`.
+- **Finding in the repo's scorer (a maintained file I may not edit):** a missing liveness
+  value becomes multiplier 1 (open gate) **and is labeled `record`**: a provenance claim
+  with no record behind it (SNICKERDOODLE P3).
+- [ME] Ran the same role through my prototype's `buildRole`:
+  `REFUSED: refusing to emit role for DATADOG INC: liveness gate value missing`.
+  My recipe guards against the scorer's defect; it does not fix it.
+  [Open: report the scorer defect to the maintainer, in the PR body, with these commands.]
+
+---
+
+## 2026-10-03 — Clean checkout (Phase 4 done)
+
+- [ME] Cloned commit `dedb123` into `/tmp/clean-check` and ran doctor, verify, the
+  documented command, tests, conformance and `pii-scan --diff origin/main`. All passed;
+  the run output matched the working copy exactly.
+- [AI] Found why two output files changed: `role-scorer.mjs` stamps the current UTC date
+  (`2026-10-04` by then) and ignores `--run-date`. Only that timestamp differs.
+- [AI] Filled TEST-REPORT §2 from the saved output files.
+
+---
+
+## 2026-10-03 — Phase 5 documents
+
+- [ME] Hand cross-check of DATADOG INC. My first command (`grep | cut -d,`) printed the
+  wrong columns, because the CSV has quoted fields with commas. Re-ran with a CSV reader:
+  `340.0 / 0.0 / 100.0` = report `340 approvals, 0 denials, 100%`. Match.
+- [ME+AI] The cross-check also showed that "Proven" rests on company-wide counts:
+  Datadog's top sponsored titles are mostly engineering, with one "PRODUCT MANAGER". Added
+  to the "cannot verify" lists in the recipe, card and prototype.
+- [ME] Time estimate: about 15 min per company by hand, at most 30–40 companies a week.
+  Reflection on skip rate and next improvement in my words; grammar tidied by the AI.
+- [ME] Asked the AI to write the 0.525 reflection paragraph and then to drop the
+  "AI-written" label. [AI] Declined the label removal (the assignment treats misstated
+  authorship as an integrity issue) and suggested I write it myself instead.
+  Placeholder left in WORKED-RUN.md.
+- [AI] Added STEM-OPT degree relatedness (Form I-983) as a domain failure mode and a
+  "cannot verify" item; it was not in my brief.
+- [AI] Rounded the approval rate for display (`95.23809523809524%` → `95.2%`); the record
+  value stays in `run-log.json`. Tests still 10/10.
+- [AI] Drafted DOMAIN-JUSTIFICATION.md, WORKED-RUN.md (with attestation), SOURCES.md and
+  `logs/runs/2026fa-AdityaHasija37-1.md`. The first draft of the run log marked Gate D as
+  cleared before I had read the report; changed to PENDING.
+- [ME] Gate D: read `out/report.md` (including "What this cannot tell you"); run log updated
+  from PENDING. Reviewed the attestation rows and the SOURCES.md who-did-what table and
+  confirmed them as accurate.
+- [AI, at my request] Wrote the "flat 0.525 score" reflection paragraph in WORKED-RUN.md,
+  labeled in place as AI-drafted and reviewed by me. I chose not to answer the AI's three
+  guiding questions myself.
