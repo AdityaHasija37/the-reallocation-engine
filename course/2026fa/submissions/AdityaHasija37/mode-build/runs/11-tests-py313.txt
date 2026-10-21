@@ -1,19 +1,28 @@
 $ python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/test_wage_level.py
-# run at 2026-10-21T19:56:29Z
+# run at 2026-10-21T20:09:56Z
+test_backdated_run_needs_replay_and_is_stamped (__main__.EndToEnd.test_backdated_run_needs_replay_and_is_stamped) ... STOP input: --run-date 1999-01-01 is not today (2026-10-21); freshness gates are measured against the run date, so a back- or forward-dated run must pass --replay and is stamped REPLAY
+ok
+test_bad_run_date_is_a_clean_stop (__main__.EndToEnd.test_bad_run_date_is_a_clean_stop) ... STOP input: --run-date '21/10/2026' is not YYYY-MM-DD
+ok
 test_extract_matches_its_provenance_hash (__main__.EndToEnd.test_extract_matches_its_provenance_hash) ... ok
 test_gate_failure_writes_nothing (__main__.EndToEnd.test_gate_failure_writes_nothing) ... STOP rule-check: 'checked_by' missing — a named person must check which DOL level rule is in force
 ok
 test_high_wage_row_refused_end_to_end (__main__.EndToEnd.test_high_wage_row_refused_end_to_end) ... ok
-test_missing_input_is_a_clean_stop (__main__.EndToEnd.test_missing_input_is_a_clean_stop) ... STOP input: national file not found: /var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmp7xbehozi/nope.xlsx
+test_missing_input_is_a_clean_stop (__main__.EndToEnd.test_missing_input_is_a_clean_stop) ... STOP input: national file not found: /var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmpkcgr7nkp/nope.xlsx
 ok
 test_run_writes_two_artifacts_and_never_a_probability (__main__.EndToEnd.test_run_writes_two_artifacts_and_never_a_probability) ... ok
 test_stale_liveness_stops_every_scenario (__main__.EndToEnd.test_stale_liveness_stops_every_scenario) ... ok
 test_tampered_extract_stops_the_run (__main__.EndToEnd.test_tampered_extract_stops_the_run) ... STOP input: OFLC extract sha256 da36937a6e4135e5… does not match its provenance ce8e3eda94a9518a… — the extract was edited after extraction
 ok
-test_unsigned_soc_set_writes_nothing (__main__.EndToEnd.test_unsigned_soc_set_writes_nothing) ... STOP soc-set: soc_candidates.set_by is empty — a named person must sign the SOC list
+test_unsigned_soc_set_writes_nothing (__main__.EndToEnd.test_unsigned_soc_set_writes_nothing) ... STOP soc-set: soc_candidates.set_by is empty or not a name — a named person must sign the SOC list
 ok
+test_area_without_extract_rows (__main__.Gates.test_area_without_extract_rows) ... ok
+test_bad_checked_on_is_a_clean_stop (__main__.Gates.test_bad_checked_on_is_a_clean_stop) ... ok
+test_bad_pay_range (__main__.Gates.test_bad_pay_range) ... ok
 test_liveness_evidence_file_must_exist (__main__.Gates.test_liveness_evidence_file_must_exist) ... ok
+test_liveness_evidence_is_parsed_not_just_present (__main__.Gates.test_liveness_evidence_is_parsed_not_just_present) ... ok
 test_liveness_must_be_from_the_run_date (__main__.Gates.test_liveness_must_be_from_the_run_date) ... ok
+test_names_must_be_names (__main__.Gates.test_names_must_be_names) ... ok
 test_proposed_regime_refused_with_current_file (__main__.Gates.test_proposed_regime_refused_with_current_file) ... ok
 test_rule_check_goes_stale (__main__.Gates.test_rule_check_goes_stale) ... ok
 test_rule_check_must_be_named (__main__.Gates.test_rule_check_must_be_named) ... ok
@@ -37,13 +46,15 @@ test_no_season_when_status_ends_before_april (__main__.Timeline.test_no_season_w
 test_three_seasons_for_jan_2027_start (__main__.Timeline.test_three_seasons_for_jan_2027_start) ... ok
 
 ----------------------------------------------------------------------
-Ran 31 tests in 0.426s
+Ran 38 tests in 0.604s
 
 OK
-wrote /var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmp3vu4_him/out/run-log.json and /var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmp3vu4_him/out/report.md
-scenarios 4 → leveled 3 · stopped 1 (stop-pay-basis 1); rows 54 · refused 3 · below-I 0 · proxy disagrees 25/51 (overstates 25, understates 0)
-wrote /var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmpgryhaf_g/out/run-log.json and /var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmpgryhaf_g/out/report.md
+wrote /private/var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmpxpgpzktd/out/run-log.json and /private/var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmpxpgpzktd/out/report.md
 scenarios 4 → leveled 3 · stopped 1 (stop-pay-basis 1); rows 54 · refused 0 · below-I 0 · proxy disagrees 23/54 (overstates 23, understates 0)
-wrote /var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmp6jlf6lx7/out/run-log.json and /var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmp6jlf6lx7/out/report.md
+wrote /private/var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmpah8inshm/out/run-log.json and /private/var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmpah8inshm/out/report.md
+scenarios 4 → leveled 3 · stopped 1 (stop-pay-basis 1); rows 54 · refused 3 · below-I 0 · proxy disagrees 25/51 (overstates 25, understates 0)
+wrote /private/var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmphbf_vg7d/out/run-log.json and /private/var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmphbf_vg7d/out/report.md
+scenarios 4 → leveled 3 · stopped 1 (stop-pay-basis 1); rows 54 · refused 0 · below-I 0 · proxy disagrees 23/54 (overstates 23, understates 0)
+wrote /private/var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmprsn532c1/out/run-log.json and /private/var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmprsn532c1/out/report.md
 scenarios 4 → leveled 0 · stopped 4 (stop-liveness 4); rows 0 · refused 0 · below-I 0 · proxy disagrees 0/0 (overstates 0, understates 0)
 # exit 0

@@ -7,19 +7,19 @@ product-manager postings** with posted pay ranges, one of them listed in two cit
 **four posting-city scenarios** in all. It checked them against the Labor Department's
 official 2026–27 wage tables for San Francisco and Seattle. Every command is pasted with
 its real output, followed by what was verified versus judged, how the output was checked,
-13 deliberate attempts to break the mode, and what it still gets wrong.
+19 deliberate attempts to break the mode, and what it still gets wrong.
 
 **What it found.** Three scenarios were levelled. One (Verkada) was refused because its
 posted range includes commission. In every levelled scenario the same salary earned 1 to
 4 lottery entries depending on the job code the employer files. For these postings,
-national pay data put the level too high in 23 of 54 comparisons and never too low. When
-the national data is scaled up to allow for its being a year older, 18 of the 23 remain
-at +10%, so the city drives most of the error. Every level was recomputed independently
+national pay data put the level too high in 23 of 54 comparisons and never too low. Even
+with the national data scaled up 10% for being a year older, 18 of the 23 remain. My
+inference is that the city drives most of the error. Every level was recomputed independently
 from the raw government file, with zero mismatches.
 
-**What broke.** Testing found six real defects: three in my own first pass, and three
-more from an independent review that re-ran the mode. All six are fixed and covered by
-tests. Two weaknesses can't be fixed in code: a person who falsely confirms a pay range
+**What broke.** Testing found twelve real defects. Three came from my own first pass, and
+nine from two independent reviews that re-ran the mode and attacked its gates. All twelve
+are fixed and covered by tests. Two weaknesses can't be fixed in code: a person who falsely confirms a pay range
 as base salary gets a wrong level, and the repo's liveness checker sometimes times out on
 a live posting, which this mode then (safely, but wrongly) skips.
 
@@ -120,8 +120,8 @@ Verkada (S1) was stopped:
 ### 4. Tests on two Python versions (`runs/11`, `runs/12`)
 
 ```
-$ python3 …/test_wage_level.py      →  Ran 31 tests in 0.426s · OK   # exit 0   (Python 3.13.3)
-$ python3.12 …/test_wage_level.py   →  Ran 31 tests in 0.530s · OK   # exit 0   (Python 3.12, as in CI)
+$ python3 …/test_wage_level.py      →  Ran 38 tests in 0.604s · OK   # exit 0   (Python 3.13.3)
+$ python3.12 …/test_wage_level.py   →  Ran 38 tests in 0.708s · OK   # exit 0   (Python 3.12, as in CI)
 ```
 
 ### 5. Data-age sensitivity (`runs/14`)
@@ -154,7 +154,7 @@ positive: `.gitignore` covers `/private/*`.
 
 | Claim in the report | Established by | Kind |
 |---|---|---|
-| The 3 postings were live on the run date | `ats:liveness` → `active` (`runs/03`–`05`); the script refuses a check from any other day (`runs/25`) | **verified** (record) |
+| The 3 postings were live on the run date | `ats:liveness` → `active` (`runs/03`–`05`); the script parses those captures for the URL and date, and refuses another day (`runs/25`), a spoofed file (`runs/35`) or a backdated run (`runs/34`) | **verified** (record) |
 | Pay sentences and ranges | Greenhouse API text, quoted verbatim | **verified** (record) |
 | Verkada's range includes commission; Flexport's and Asana's are base | the quoted wording, read by a person (Gate P) | **judged** (your-input) |
 | Level I–IV annual wages per metro × SOC | OFLC file, hourly × 2080; 54/54 recomputed from raw (`runs/13`) | **verified** (record + arithmetic) |
@@ -164,7 +164,7 @@ positive: `.gitignore` covers `/private/*`.
 | Which SOC the employer will file | — | **not known** |
 | National bracket under the current and proposed rules | May 2024 national percentiles × approximate level percentiles | **proxy**, never decides |
 | "National data overstates 23/54, never understates" | counted by the script | **verified** (derived), for these 3 postings and this SOC list only |
-| "The city, not the data year, drives most of it" | sensitivity table: 18/54 at +10% | **verified** (derived) under a scaling assumption |
+| "The city, not the data year, drives most of it" | sensitivity table: 18/54 at +10%; the approximate percentile mapping is a second possible cause that this test doesn't separate | **inferred** |
 | Rule in force = current (2005) | Federal Register + DOL news, checked by a person | **judged** (your-input, Gate R) |
 | 3 lottery seasons left | OPT start (assumed) + 36 months; March registration assumed | **inferred** from an assumption |
 | Sponsorship counts and median salary | 80 Days CSV; cross-checked (`runs/13`) | **verified** (record) |
@@ -175,8 +175,10 @@ positive: `.gitignore` covers `/private/*`.
 ## Verification — how I know the output is real
 
 1. **Independent recompute from the raw government file** (`runs/13`). A separate script
-   reads `raw/2026-27/ALC_Export.csv` directly, not the extract: `54 rows checked, 0
-   mismatches`. 80 Days counts match the CSV, and every `selection_probability` is null.
+   reads `raw/2026-27/ALC_Export.csv` directly, not the extract, and doesn't import the mode.
+   It recomputes all four annual level wages, the level, the entries and the gap for every
+   row, including the `Annual Wage` and refusal branches: `54 rows checked, 0 mismatches`.
+   80 Days counts match the CSV, and every `selection_probability` is null.
 2. **Hand checks.**
    - Raw row `"41860","15-2051",1,"53.07","68.48","83.90","99.31"` gives Level II =
      68.48 × 2080 = **$142,438.40**, and the report shows **$142,438**.
@@ -185,11 +187,16 @@ positive: `.gitignore` covers `/private/*`.
    - SF 15-1299 gap: 96.77 × 2080 − 193,500 = **$7,782** ✓.
 3. **JSON parsed** (`runs/16`): the summary, routes and null probabilities print as above.
 4. **Determinism** (`runs/15`): two runs, identical sha256.
-5. **Clean clone** (`runs/17`): a fresh clone of the pushed commit, with no `raw/` and no
-   network, reproduces the committed outputs byte for byte, and the tests pass.
-6. **Provenance chain.** Zip sha256 pinned in `checksums.lock` → extract sha256 in its
-   provenance file → the run refuses a mismatch → the run log records the verified hash.
-   Policy claims trace to `data/policy-sources.json`.
+5. **Clean clone** (`runs/17`): a fresh GitHub clone of the pushed code commit
+   (`ee049d1`), with no `raw/`, reproduces the committed outputs byte for byte
+   (`run-log.json` `49ee389c…`, `report.md` `1ee4d0d1…`), and 38/38 tests pass.
+6. **Replay** (`runs/18`): simulating a run on 2026-11-05, a backdated run is refused
+   without `--replay`; with it, the report differs from the committed one only by the
+   REPLAY line, and the log only by its `mode` field.
+7. **Provenance chain.** Zip sha256 pinned in `checksums.lock` → the provenance file's zip
+   hash must equal that pin → the extract's sha256 must equal its provenance → the run log
+   records the verified hash. Editing all three files together would still pass; only the
+   raw recompute (1) catches that. Policy claims trace to `data/policy-sources.json`.
 
 ## Attestation
 
@@ -197,10 +204,17 @@ positive: `.gitignore` covers `/private/*`.
 - By: Aditya Hasija (AdityaHasija37) · 2026-10-21. Signed after the last edit to the
   recipe, scripts and fixtures. Commands executed by Claude Code at my direction; gates
   P, S, R and D cleared by me.
-- Bound to (sha256, first 16 hex): recipe `a35d00abde7b8135` · `wage_level.py`
-  `66bea8d8e2229717` · `test_wage_level.py` `82249d86045781ff` · extract
-  `ce8e3eda94a9518a` · `scenarios.2026-10-21.json` `22849d8b7778c1dd` ·
-  `rule-check.json` `cc6465703d024417`. Any change to these voids this attestation.
+- Bound to (sha256, first 16 hex). Any change to these files voids this attestation:
+
+  | File | sha256 | File | sha256 |
+  |---|---|---|---|
+  | recipe `.md` | `6721949439bd4ff7` | card `.card.md` | `bcb82c9837eea1d5` |
+  | `wage_level.py` | `500305ef78935734` | `test_wage_level.py` | `86eeac2db9545c6b` |
+  | `xcheck_raw.py` | `310e84507ddf5fe7` | `sensitivity_vintage.py` | `ffd24887dd1c3140` |
+  | `fetch-oflc.sh` | `1fb05719a1d3d7c7` | `capture-evidence.sh` | `ed794d317dd9b91a` |
+  | `checksums.lock` | `a1a1c2a406e73ea9` | extract `.csv` | `ce8e3eda94a9518a` |
+  | `persona.fixture.json` | `f66db8d56aed174b` | `scenarios.2026-10-21.json` | `22849d8b7778c1dd` |
+  | `rule-check.json` | `cc6465703d024417` | | |
 
 ### Tested
 
@@ -210,17 +224,18 @@ positive: `.gitignore` covers `/private/*`.
 | `wage_level.py extract` + `git diff` (`runs/02`) | 24 rows, 0 missing, empty diff | byte-identical extract |
 | `ats:liveness` on the 3 postings (`runs/03`–`05`) | `active` ×3, exit 0 | active |
 | `wage_level.py run --run-date 2026-10-21` (`runs/10`) | 4 scenarios → 3 leveled, 1 `stop-pay-basis`; 54 rows; exit 0 | OTE refused, others leveled |
-| Tests, Python 3.13 and 3.12 (`runs/11`, `12`) | 31/31 OK on both | all pass |
-| Raw-OFLC recompute (`runs/13`) | 54 rows, 0 mismatches | 0 |
+| Tests, Python 3.13 and 3.12 (`runs/11`, `12`) | 38/38 OK on both | all pass |
+| Raw-OFLC recompute: wages, level, entries, gap (`runs/13`) | 54 rows, 0 mismatches | 0 |
 | Data-age sensitivity (`runs/14`) | 23 → 20 → 18 → 13 as national wages are scaled +0/+5/+10/+20% | — (exploratory) |
 | Determinism (`runs/15`) | identical | identical |
-| Clean clone of the pushed commit (`runs/17`) | outputs identical to committed; tests pass; `git status` clean | reproducible |
+| GitHub clone of pushed commit `ee049d1` (`runs/17`) | outputs identical to committed; 38/38; `git status` clean | reproducible |
+| Simulated run on 2026-11-05 (`runs/18`) | without `--replay`: exit 2; with: report differs only by the REPLAY line | replay is explicit |
 | `npm run verify` / `doctor` / `pii-scan --diff` (`runs/40`–`42`) | exit 0 / 0 / clean | no new failures |
 | **Break:** `ats:liveness` on a fake job ID (`runs/20`) | `expired`, exit 1 | gate closed |
 | **Break:** Gate R empty (`runs/22`) | `STOP rule-check: 'regime_in_force' missing`; wage_level exit 2; nothing written | stop |
-| **Break:** Gate R 41 days old (`runs/23`) | `STOP … (must be 0–30)`; exit 2; nothing written | stop |
+| **Break:** Gate R 41 days old, `--replay` (`runs/23`) | `STOP … (must be 0–30)`; exit 2; nothing written | stop |
 | **Break:** Gate R set to the proposed rule (`runs/24`) | `STOP … needs a newer OFLC file`; exit 2; nothing written | stop |
-| **Break:** run 29 days after the liveness check (`runs/25`) | all 4 scenarios `stop-liveness` "checked on 2026-10-21, not on the run date 2026-11-19" | stop |
+| **Break:** run 29 days after the liveness check, `--replay` (`runs/25`) | all 4 scenarios `stop-liveness` "checked on 2026-10-21, not on the run date 2026-11-19" | stop |
 | **Break:** SOC list unsigned (`runs/26`) | `STOP soc-set: … set_by is empty`; exit 2; nothing written | stop |
 | **Break:** SOC code not in the extract (`runs/27`) | `STOP soc-set: code(s) not in the OFLC extract: 99-9999`; exit 2; nothing written | stop |
 | **Break:** Verkada OTE relabelled base, no confirmer (`runs/28`) | `stop-pay-basis` "nobody has confirmed…" | stop |
@@ -229,6 +244,13 @@ positive: `.gitignore` covers `/private/*`.
 | **Break:** one wage edited in the extract (`runs/31`) | `STOP input: OFLC extract sha256 … does not match its provenance`; exit 2; nothing written | stop |
 | **Break:** missing national file (`runs/32`) | `STOP input: national file not found`; exit 2; nothing written | stop |
 | **Break:** forged pin in `checksums.lock` (`runs/33`) | `CHECKSUM MISMATCH … refusing.`; fetch exit 1; nothing written | refuse |
+| **Break:** backdated `--run-date 2026-10-20` without `--replay` (`runs/34`) | `STOP input: --run-date 2026-10-20 is not today`; exit 2; nothing written | stop |
+| **Break:** liveness evidence pointed at `README.md` (`runs/35`) | all 4 `stop-liveness` "has no capture timestamp on 2026-10-21" | stop |
+| **Break:** blank signers `"  "` on Gate R and Gate P (`runs/36`) | Gate R: exit 2; Gate P: all `stop-pay-basis` "nobody (by name)…" | stop |
+| **Break:** `--run-date 21/10/2026`; `checked_on: "Oct 21"` (`runs/37`) | `STOP … is not YYYY-MM-DD` ×2; exit 2; nothing written | clean stop, no traceback |
+| **Break:** inverted pay range (`runs/38`) | 3 × `stop-pay-range` "must satisfy 0 < low ≤ high" | stop |
+| **Break:** worksite area 35620 (not in extract) (`runs/39`) | 3 × `stop-worksite` "has no rows in the extract" | stop |
+| Evidence path outside the repo, real capture for a different URL: test `test_liveness_evidence_is_parsed_not_just_present` | `stop-liveness` for each | stop |
 | San Jose × 11-3021 ("High Wage", no levels): test `test_high_wage_row_refused_end_to_end` | rows refused, `level` null | refused, never filled |
 
 ### Did not test
@@ -277,6 +299,26 @@ Independent review (a second Claude Code session re-ran the mode as a TA would):
   without timestamps; the 23/54 finding stated without its sample limits or the data-age
   confound; the justification over one page; a stale fee line in the report. All fixed.
 
+Second independent review (a fresh session that attacked the gates):
+- **Backdating `--run-date` satisfied both freshness gates.** A run on any later day with
+  `--run-date 2026-10-21` passed Gates L and R. The run date must now be today unless
+  `--replay` is given, which stamps the log and report (`runs/18`, `runs/34`).
+- **Gate L evidence was only checked for existence.** Any file, even `/etc/hosts`, passed,
+  and the typed `status` was trusted. `liveness_evidence_ok()` now requires an in-repo
+  capture timestamped on `checked_on` that shows `✅ active` for that exact URL (`runs/35`).
+- **Malformed dates and pay gave tracebacks.** A bad `--run-date`, a non-ISO `checked_on`
+  and `pay.low: null` all crashed. They are now clean stops (`runs/37`, `runs/38`).
+- **Blank signers passed.** `"  "` and `"x"` counted as names. `named()` now requires
+  ≥ 3 characters including a letter (`runs/36`).
+- **An area with no extract rows was routed `leveled`**, with every row refused. It is now
+  `stop-worksite` (`runs/39`).
+- **An inverted range was levelled silently.** It is now `stop-pay-range` (`runs/38`).
+- **Smaller corrections.** The cross-check now verifies wages, entries and gaps, not just
+  the level name. The attestation binds 13 files, up from 6. The output contract lists
+  every emitted field. The "city, not the year" finding is relabelled an inference. The
+  stale "26 tests", the wrong capture path in the README and the break count are fixed.
+  Local home paths no longer appear in run output.
+
 Found while re-capturing:
 - **My "closed posting" break wasn't a break.** On the first pass, the old Lever posting
   returned `uncertain` (a 15-second navigation timeout). On re-capture it returned
@@ -297,8 +339,10 @@ Found while re-capturing:
   were only documented.
 
 **What the mode got wrong or missed.**
-- **The gates were weaker in code than in the recipe** until the independent review. A
-  recipe's gate table is a claim, and only a test makes it true.
+- **The gates were weaker in code than in the recipe** until two independent reviews
+  attacked them: first unenforced, then enforced but spoofable by backdating or by
+  pointing at the wrong file. A recipe's gate table is a claim, and only a break test
+  makes it true.
 - **The signal is mostly "analyst code vs manager code".** The analyst codes sit at Level
   IV for every PM salary tested, and the manager codes at Level I–II. The report should
   say so in its summary.
