@@ -1,0 +1,15 @@
+{
+  "_label": "Fictional-safe persona: the author's own public situation (program, graduation term, target roles). No private data.",
+  "program": "MS Information Systems (STEM-designated)",
+  "graduation": "2026-12",
+  "experience_years": 3.5,
+  "target_roles": ["Product Manager", "AI Product Manager", "Product Analyst"],
+  "target_metros": ["San Francisco Bay Area", "Seattle"],
+  "opt_start": {
+    "value": "2027-01-15",
+    "source": "your-input",
+    "note": "Assumed EAD start after a December 2026 graduation. Replace with the date on the real EAD card."
+  },
+  "opt_months": 12,
+  "stem_extension_months": 24
+}
