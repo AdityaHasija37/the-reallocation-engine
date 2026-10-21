@@ -61,7 +61,7 @@ cap 13-xcheck-raw-oflc-and-80days.txt "python3 $C/xcheck_raw.py $C"
 cap 14-sensitivity-vintage.txt "python3 $C/sensitivity_vintage.py"
 cap 15-determinism.txt "shasum -a 256 $C/out/run-log.json $C/out/report.md > $T/h1 && python3 $C/wage_level.py run --run-date $RUN_DATE >/dev/null && shasum -a 256 $C/out/run-log.json $C/out/report.md > $T/h2 && cat $T/h1 && diff $T/h1 $T/h2 && echo identical"
 cap 16-json-parse.txt "python3 -c \"import json; d=json.load(open('$C/out/run-log.json')); print('summary', d['summary']); print('routes', {s['id']: s['route'] for s in d['scenarios']}); print('probabilities', [s['selection_probability'] for s in d['scenarios']])\""
-cap 17-clean-clone.txt "rm -rf $T/clone && git clone -q . $T/clone && cd $T/clone && test ! -e $C/raw && python3 $C/wage_level.py run --run-date $RUN_DATE && python3 $C/test_wage_level.py 2>&1 | tail -3 && shasum -a 256 $C/out/run-log.json $C/out/report.md && git status --short | wc -l"
+cap 17-clean-clone.txt "git clone -q --branch mode/AdityaHasija37-msis-pm-wage-level https://github.com/AdityaHasija37/the-reallocation-engine.git $T/clone && cd $T/clone && git log --oneline -1 && test ! -e $C/raw && python3 $C/wage_level.py run --run-date $RUN_DATE && python3 $C/test_wage_level.py 2>&1 | grep -E '^(Ran|OK|FAILED)' && shasum -a 256 $C/out/run-log.json $C/out/report.md && git status --short | wc -l"
 # ── Break attempts
 cap 20-BREAK-liveness-fake-id.txt "npm run ats:liveness -- https://job-boards.greenhouse.io/flexport/jobs/9999999999"
 cap 21-liveness-recheck-earlier-uncertain-posting.txt "npm run ats:liveness -- https://jobs.lever.co/payjoy/4fb8781e-413f-487c-a0a0-23466ed3c834"
