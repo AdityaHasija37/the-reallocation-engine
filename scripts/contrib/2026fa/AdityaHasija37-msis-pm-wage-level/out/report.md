@@ -4,7 +4,7 @@
 
 **What this is.** A check of live product-manager postings against the U.S. Department of Labor's official wage levels. Since 2026 the H-1B lottery gives a registration 1 to 4 entries depending on which wage level the offered salary reaches, and the level depends on the job code the employer files and the city — neither of which the applicant chooses or sees.
 
-**What it found.** 4 posting-city combinations were checked; 3 could be leveled and 1 was stopped by a check. For the same salary, the number of lottery entries changes with the job code the employer picks: Flexport (Seattle): 2–4 entries at the midpoint; Flexport (San Francisco): 1–4 entries at the midpoint; Asana (San Francisco): 2–4 entries at the midpoint. A shortcut using national pay data disagreed with the official city level in 23 of 54 comparisons; it put the level too high 23 times and too low 0 times.
+**What it found.** 4 posting-city combinations were checked; 3 could be leveled and 1 was stopped by a check. For the same salary, the number of lottery entries changes with the job code the employer picks: Flexport (Seattle): 2–4 entries at the midpoint; Flexport (San Francisco): 1–4 entries at the midpoint; Asana (San Francisco): 2–4 entries at the midpoint. A shortcut using national pay data disagreed with the official city level in 23 of 54 comparisons; it put the level too high 23 times and too low 0 times. That holds for these postings and job codes only; the national data is also one survey year older than the official table.
 
 **What it cannot tell you.** Your chance of being selected (not computable from this data), which code the employer will actually file, or your final salary. You have 3 lottery season(s) left before your work authorization ends (2030-01-15, assumed).
 
@@ -37,7 +37,7 @@ Labels: **record** = read from a dataset; **derived** = arithmetic on records; *
 - Posted range: $174,000–$213,000 · basis **base** (confirmed by Aditya Hasija (AdityaHasija37), 2026-10-21, read quoted_text (Gate P)) · quote: “The US base salary range for this position (this does not include bonus, equity and benefits): $174,000 — $213,000 USD”
 - 80 Days record: 312 approvals, 6 denials, 98.1% · company-wide median sponsored salary $190,000
 
-| SOC (employer's choice) | OFLC Level I / II / III / IV (annual) | Low | Mid | High | Entries L/M/H | Mid: to next level | National proxy (now · proposed) | Cognitive Pivot |
+| SOC (employer's choice) | OFLC Level I / II / III / IV (annual) | Low | Mid | High | Entries L/M/H | Mid: to next level | National proxy at Mid (now · proposed) | Cognitive Pivot |
 |---|---|---|---|---|---|---|---|---|
 | 11-2021 Marketing Managers | $111,842 / $150,925 / $190,008 / $229,091 | II | III | III | 2/3/3 | +$35,591 → IV | III–IV · I–III | 3.974 |
 | 11-3021 Computer and Information Systems Managers | $146,453 / $188,718 / $230,963 / $273,229 | I | II | II | 1/2/2 | +$37,463 → III | III–IV · I–III ⚠ disagrees | 3.834 |
@@ -46,6 +46,7 @@ Labels: **record** = read from a dataset; **derived** = arithmetic on records; *
 | 15-1299 Computer Occupations, All Other | $74,568 / $104,978 / $135,408 / $165,818 | IV | IV | IV | 4/4/4 | at top level | IV · IV | — |
 | 15-2051 Data Scientists | $93,912 / $127,026 / $160,118 / $193,232 | III | IV | IV | 3/4/4 | at top level | IV · III–IV | — |
 
+National proxy vs the official level, all three offer points: disagrees 6/18 (too high 6, too low 0); the ⚠ column shows the midpoint only.
 Spread across SOC codes (entries): low 1–4 · mid 2–4 · high 2–4
 `0*` = below Level I: at that salary the offer does not meet the prevailing wage for that code. Cognitive Pivot `—` = the repo extract has no score for that occupation; no sub-occupation's score is substituted.
 
@@ -56,7 +57,7 @@ Spread across SOC codes (entries): low 1–4 · mid 2–4 · high 2–4
 - Posted range: $174,000–$213,000 · basis **base** (confirmed by Aditya Hasija (AdityaHasija37), 2026-10-21, read quoted_text (Gate P)) · quote: “The US base salary range for this position (this does not include bonus, equity and benefits): $174,000 — $213,000 USD”
 - 80 Days record: 312 approvals, 6 denials, 98.1% · company-wide median sponsored salary $190,000
 
-| SOC (employer's choice) | OFLC Level I / II / III / IV (annual) | Low | Mid | High | Entries L/M/H | Mid: to next level | National proxy (now · proposed) | Cognitive Pivot |
+| SOC (employer's choice) | OFLC Level I / II / III / IV (annual) | Low | Mid | High | Entries L/M/H | Mid: to next level | National proxy at Mid (now · proposed) | Cognitive Pivot |
 |---|---|---|---|---|---|---|---|---|
 | 11-2021 Marketing Managers | $148,387 / $191,942 / $235,477 / $279,032 | I | II | II | 1/2/2 | +$41,977 → III | III–IV · I–III ⚠ disagrees | 3.974 |
 | 11-3021 Computer and Information Systems Managers | $167,565 / $208,104 / $248,643 / $289,182 | I | I | II | 1/1/2 | +$14,604 → II | III–IV · I–III ⚠ disagrees | 3.834 |
@@ -65,6 +66,7 @@ Spread across SOC codes (entries): low 1–4 · mid 2–4 · high 2–4
 | 15-1299 Computer Occupations, All Other | $80,870 / $121,014 / $161,138 / $201,282 | III | III | IV | 3/3/4 | +$7,782 → IV | IV · IV ⚠ disagrees | — |
 | 15-2051 Data Scientists | $110,386 / $142,438 / $174,512 / $206,565 | II | III | IV | 2/3/4 | +$13,065 → IV | IV · III–IV ⚠ disagrees | — |
 
+National proxy vs the official level, all three offer points: disagrees 10/18 (too high 10, too low 0); the ⚠ column shows the midpoint only.
 Spread across SOC codes (entries): low 1–4 · mid 1–4 · high 2–4
 `0*` = below Level I: at that salary the offer does not meet the prevailing wage for that code. Cognitive Pivot `—` = the repo extract has no score for that occupation; no sub-occupation's score is substituted.
 
@@ -75,7 +77,7 @@ Spread across SOC codes (entries): low 1–4 · mid 1–4 · high 2–4
 - Posted range: $202,000–$230,000 · basis **base** (confirmed by Aditya Hasija (AdityaHasija37), 2026-10-21, read quoted_text (Gate P)) · quote: “For this role, the estimated base salary range is between $202,000 - $230,000.”
 - 80 Days record: 352 approvals, 14 denials, 96.2% · company-wide median sponsored salary $171,000
 
-| SOC (employer's choice) | OFLC Level I / II / III / IV (annual) | Low | Mid | High | Entries L/M/H | Mid: to next level | National proxy (now · proposed) | Cognitive Pivot |
+| SOC (employer's choice) | OFLC Level I / II / III / IV (annual) | Low | Mid | High | Entries L/M/H | Mid: to next level | National proxy at Mid (now · proposed) | Cognitive Pivot |
 |---|---|---|---|---|---|---|---|---|
 | 11-2021 Marketing Managers | $148,387 / $191,942 / $235,477 / $279,032 | II | II | II | 2/2/2 | +$19,477 → III | IV · III–IV ⚠ disagrees | 3.974 |
 | 11-3021 Computer and Information Systems Managers | $167,565 / $208,104 / $248,643 / $289,182 | I | II | II | 1/2/2 | +$32,643 → III | III–IV · I–III ⚠ disagrees | 3.834 |
@@ -84,6 +86,7 @@ Spread across SOC codes (entries): low 1–4 · mid 1–4 · high 2–4
 | 15-1299 Computer Occupations, All Other | $80,870 / $121,014 / $161,138 / $201,282 | IV | IV | IV | 4/4/4 | at top level | IV · IV | — |
 | 15-2051 Data Scientists | $110,386 / $142,438 / $174,512 / $206,565 | III | IV | IV | 3/4/4 | at top level | IV · IV | — |
 
+National proxy vs the official level, all three offer points: disagrees 7/18 (too high 7, too low 0); the ⚠ column shows the midpoint only.
 Spread across SOC codes (entries): low 1–4 · mid 2–4 · high 2–4
 `0*` = below Level I: at that salary the offer does not meet the prevailing wage for that code. Cognitive Pivot `—` = the repo extract has no score for that occupation; no sub-occupation's score is substituted.
 
@@ -97,7 +100,7 @@ Spread across SOC codes (entries): low 1–4 · mid 2–4 · high 2–4
 - Whether another employer also registers the student at a lower level (USCIS then uses the lowest level).
 - E-Verify enrollment of the employer (required for STEM OPT) and degree relatedness of the role.
 - Whether the worksite in the posting is where the person will actually work (remote/hybrid changes the area).
-- Other cost or eligibility policy (e.g., the 2025 petition-fee proclamation and its exemptions) — not modeled.
+- Fee and entry policy: Proclamation 11069 (FR 2026-19554; $100,000 entry payment extended to 2027-09-21) and the DHS proposed $103,265 cap-petition fee (FR 2026-17324, proposed only), as of 2026-10-21 — not modeled.
 
 Selection probability is deliberately absent. Entries are a weight, not a chance.
 

@@ -22,13 +22,14 @@ and the choice can change your entries from 1 to 4 for the same salary. You cann
 that choice on a job posting.
 
 **What it found first time out.** For one live Senior PM posting at $193,500 in San
-Francisco, the entries ranged from 1 to 4 depending on the job code. National pay
-figures made the salary look higher-level than the official city table in 23 of 54
-checks.
+Francisco, the entries ranged from 1 to 4 depending on the job code. For the three
+postings checked, national pay figures made the salary look higher-level than the
+official city table in 23 of 54 checks, and never lower.
 
 ## When to use it
 
-- You have a live posting with a pay range in San Francisco–Oakland, San Jose or Seattle.
+- You have a live posting with a pay range in San Francisco–Oakland, San Jose or Seattle
+  (the first run covered San Francisco and Seattle; San Jose is in the data but untested on a posting).
 - Before a final-round conversation, or when an offer arrives.
 
 ## What you must do yourself (the tool will not run without you)

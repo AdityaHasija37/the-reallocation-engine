@@ -8,10 +8,12 @@ H-1B lottery entries a posted salary would earn under the 2026 wage-weighted lot
 for each job code the employer might file. It ran on live postings and official
 Department of Labor data.
 
-**What it found.** For the same salary, the number of entries ranged from 1 to 4
-depending on the employer's job code, which the applicant can't see. National pay data
-made salaries look higher-level than the official city tables in 23 of 54 checks, and
-never lower. One of four postings was refused because its range included commission.
+**What it found.** Across three live postings (four posting-city combinations), the
+same salary earned 1 to 4 entries depending on the employer's job code, which the
+applicant can't see. For these postings, national pay data made salaries look
+higher-level than the official city tables in 23 of 54 checks and never lower; most of
+the gap remains after allowing for the national data being a year older. One posting
+was refused because its range included commission.
 
 **Status: DRAFT.** It ran in full on real data. Six proposed additions are still open,
 and the lifecycle doesn't allow skipping a stage while any are open.
@@ -23,7 +25,7 @@ and the lifecycle doesn't allow skipping a stage while any are open.
 | 1. Mode file | `recipes/cases/2026fa/AdityaHasija37-msis-pm-wage-level.md` (+ person-facing card `.card.md`) |
 | 2. Domain justification | `course/2026fa/submissions/AdityaHasija37/mode-build/DOMAIN-JUSTIFICATION.md` |
 | 3. Worked run, verification, attestation, reflection | `course/2026fa/submissions/AdityaHasija37/mode-build/WORKED-RUN.md` |
-| Real terminal output (27 captures, command + timestamp + exit code) | `course/2026fa/submissions/AdityaHasija37/mode-build/runs/` |
+| Real terminal output (each file: verbatim command, UTC timestamp, full output, exit code) | `course/2026fa/submissions/AdityaHasija37/mode-build/runs/` |
 | 4. Run-log entry | `logs/runs/2026fa-AdityaHasija37-wage-level-1.md` |
 | Scripts, tests, data extract, fixtures, sample output | `scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/` |
 

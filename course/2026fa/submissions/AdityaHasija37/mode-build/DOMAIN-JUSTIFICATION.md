@@ -3,77 +3,62 @@
 ## Executive summary
 
 **What this is.** One page on who this mode is for, what they cannot see without it, and
-the two mistakes it is built to catch.
+the two mistakes it is built to catch. **What it shows:** under the 2026 wage-weighted
+H-1B lottery, the same product-manager salary earned 1 to 4 entries depending on a job
+code the employer picks and the applicant never sees.
 
-**What it decides.** Since 2026 the H-1B lottery weights each registration by wage level.
-A product-management job seeker cannot see which level a posted salary reaches, because
-the employer's choice of job code decides it. On real postings, the same salary earned
-anywhere from 1 to 4 lottery entries depending on that choice.
+## Who, and when
 
-## Who uses it, and when
-
-I'm an international MS Information Systems student (STEM-designated), graduating in
-December 2026. I have about 3.5 years of prior work experience and I'm targeting product
-manager, AI product manager and product analyst roles in the San Francisco Bay Area and
-Seattle. OPT plus the 24-month STEM extension gives me roughly three H-1B registration
-seasons: March 2027, 2028 and 2029. I use the mode at two moments. The first is before
-a final round at a company whose posting shows a pay range. The second is when an offer
-arrives, because by then the worksite and base salary are fixed and only the job code is
-still open.
+I'm an international MS Information Systems student (STEM), graduating in December 2026
+with about 3.5 years of prior experience, targeting PM, AI PM and product-analyst roles
+in the SF Bay Area and Seattle. OPT plus the STEM extension gives me three registration
+seasons (March 2027, 2028 and 2029). I run the mode before a final round at a company
+whose posting shows a pay range, and again when an offer fixes the worksite and base
+salary.
 
 ## The information asymmetry
 
-The weighted-selection rule (in effect from February 27, 2026) gives a registration
-1, 2, 3 or 4 entries according to the highest Department of Labor wage level the
-offered wage meets. That level is set by three things:
+Since February 27, 2026, a registration gets 1–4 entries according to the highest DOL
+wage level the offered wage meets. That level depends on **the SOC code the employer
+files**, **the worksite's wage area**, and **base pay**. Product managers have **no SOC
+code of their own**. A PM can plausibly be filed as a marketing or IS manager, a
+management or systems analyst, "computer occupations, all other", or a data scientist,
+and those codes' Level I wages in San Francisco range from $73,258 to $167,565. At
+Flexport's posted Senior PM midpoint ($193,500 base, live on 2026-10-21), the official SF
+table gives **1 entry** under the IS-manager code and **4** under management analyst.
+The posting doesn't say which applies. The employer's counsel knows; the student only
+knows to ask after seeing this table.
 
-1. **the SOC code the employer files.** The employer chooses it, and the applicant never sees it on a posting;
-2. **the worksite's wage area**, which has its own Level I–IV table;
-3. **the base wage.**
+## Engine layers
 
-Product managers have **no SOC code of their own**. A PM title can plausibly be filed as
-a marketing manager, an IS manager, a management analyst, a systems analyst, "computer
-occupations, all other", or a data scientist (for AI and analytics PMs). The level tables
-for those codes are far apart. In San Francisco, Level I runs from **$73,258** (management
-analyst) to **$167,565** (IS manager). So at Flexport's posted Senior PM midpoint
-($193,500, base, live on 2026-10-21) the official table gives **1 entry** under the IS
-manager code and **4 entries** under the management analyst code. Same job, same salary,
-four times the weight, and nothing on the posting tells the applicant which one
-applies. The employer's immigration counsel knows. The student doesn't, unless they ask,
-and they only know to ask if they've seen this table.
-
-## Engine layers it connects
-
-- **Cognitive Pivot (BLS / O\*NET).** The mode runs on OEWS wage distributions by SOC,
-  through the official OFLC area tables and the repo's national OEWS file, and shows each
-  code's Cognitive Pivot score. That puts a question the Cognitive Pivot thesis cares about
-  next to the lottery math: is the employer filing a judgment-heavy role under a
-  routine-analysis code?
-- **80 Days to Stay.** It uses the employer's H-1B approval record and company-wide median
-  sponsored salary as context, and it gates on the visa timeline (lottery seasons left
-  before STEM OPT ends).
-- **Job-Ops.** Posting liveness (`ats:liveness`) is a hard gate before anything is levelled.
+**Cognitive Pivot** (OEWS wage distributions by SOC, plus each code's Cognitive Pivot
+score). **80 Days** (the employer's H-1B record and the visa-timeline gate). **Job-Ops**
+(posting liveness as a hard gate).
 
 ## Failure modes specific to this domain
 
-**1. The national-median shortcut overstates the level in high-wage metros.** A careful
-student, or an LLM answering from general knowledge, looks up BLS national percentiles,
-sees that $174,000 is above the national 75th percentile for data scientists, and
-concludes "Level IV, 4 entries". The official San Francisco table says **Level II**. In
-this run the national shortcut disagreed with the official city level in **23 of 54**
-comparisons, and **all 23 overstated** the level. None understated it. The error always
-points the same way, toward false confidence. That makes it hardest to catch for the
-diligent student who *did* check government data, because using BLS feels like
-verification. It's also hard for a student who moves between metros: the same national
-number is "right" in a lower-wage area and wrong in SF or Seattle.
+**1. National wage data makes a high-cost-metro salary look higher-level than it is.** A
+careful student, or an LLM answering from general knowledge, sees that $174,000 is above
+the national 75th percentile for data scientists and concludes "Level IV". The official
+San Francisco table says **Level II**. For my three postings, the national shortcut
+disagreed with the official level in **23 of 54** comparisons, all in the flattering
+direction.
 
-**2. A pay-transparency range is not the offered wage.** California and Washington
-require posted pay ranges, and students treat them as the salary. But some ranges are
-**on-target earnings** (base plus commission). Verkada's "Business Systems – Product
-Manager" posting says so in so many words. The wage level is judged on base pay. Read as
-base, Verkada's $160,000 low end looks like Level III or IV under the systems-analyst
-code; the real base is lower by an amount the posting doesn't state. This is hardest to
-catch for students whose previous job markets quote total "cost to company" as a single
-number, and for PM roles that sit next to sales (solutions, partner, commerce), where
-OTE wording is common. The mode refuses to level any range a person has not confirmed
-is base salary. Its honest limit is that it cannot catch a person who confirms falsely.
+Part of that could be data age: the national file is May 2024 and the official table is
+built on May 2025. When I scaled national wages up 10% (several years' growth), **18 of
+54** still overstated, so the city, not the year, drives most of the error. The sample is
+three postings and a hand-picked set of codes, so the rate isn't general; the direction
+is the warning.
+
+It is hardest to catch for the diligent student, because checking BLS data *feels* like
+verification. It is also hard for anyone comparing metros: the same national figure is
+roughly right in a cheaper city and wrong in SF or Seattle.
+
+**2. A posted pay range is not the offered wage.** Some ranges required by pay-transparency
+laws are **on-target earnings**, meaning base plus commission. Verkada's Business Systems
+PM posting says so explicitly, and the lottery level is judged on base pay. Read as base,
+its $160,000 low end looks like Level III under the systems-analyst code; the true base
+is lower by an amount the posting doesn't give. It is hardest to catch for students used
+to markets that quote one total "cost to company" figure, and in sales-adjacent PM roles
+(partner, commerce, solutions), where OTE wording is common. The mode refuses any range a
+person hasn't confirmed as base. It cannot catch a person who confirms it falsely.

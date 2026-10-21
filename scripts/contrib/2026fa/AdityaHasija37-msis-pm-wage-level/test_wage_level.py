@@ -120,18 +120,41 @@ class Gates(unittest.TestCase):
         with self.assertRaises(wl.GateStop):
             wl.check_run_gates({**self.persona, "opt_start": {"value": "Jan 2027"}}, self.rule, date(2026, 10, 21))
 
+    RUN = date(2026, 10, 21)
+    EVIDENCE = "course/2026fa/submissions/AdityaHasija37/mode-build/runs/04-liveness-S2-flexport.txt"
+
     def base_sc(self, **pay):
-        return {"liveness": {"status": "active"}, "worksite": {"oflc_area": "41860"},
+        return {"liveness": {"status": "active", "checked_on": "2026-10-21", "evidence": self.EVIDENCE},
+                "worksite": {"oflc_area": "41860"},
                 "pay": {"basis": "base", "basis_confirmed_by": "x", **pay}}
 
     def test_scenario_gates(self):
-        self.assertEqual(wl.scenario_gate(self.base_sc()), (None, None))
+        self.assertEqual(wl.scenario_gate(self.base_sc(), self.RUN), (None, None))
         for status in ("expired", "uncertain", None):
             sc = self.base_sc()
             sc["liveness"]["status"] = status
-            self.assertEqual(wl.scenario_gate(sc)[0], "stop-liveness")
-        self.assertEqual(wl.scenario_gate(self.base_sc(basis="ote"))[0], "stop-pay-basis")
-        self.assertEqual(wl.scenario_gate(self.base_sc(basis_confirmed_by=None))[0], "stop-pay-basis")
+            self.assertEqual(wl.scenario_gate(sc, self.RUN)[0], "stop-liveness")
+        self.assertEqual(wl.scenario_gate(self.base_sc(basis="ote"), self.RUN)[0], "stop-pay-basis")
+        self.assertEqual(wl.scenario_gate(self.base_sc(basis_confirmed_by=None), self.RUN)[0], "stop-pay-basis")
+
+    def test_liveness_must_be_from_the_run_date(self):
+        # Regression (TA review 2026-10-21): a 29-day-old liveness check used to pass.
+        self.assertEqual(wl.scenario_gate(self.base_sc(), date(2026, 11, 19))[0], "stop-liveness")
+
+    def test_liveness_evidence_file_must_exist(self):
+        sc = self.base_sc()
+        sc["liveness"]["evidence"] = "course/nope.txt"
+        self.assertEqual(wl.scenario_gate(sc, self.RUN)[0], "stop-liveness")
+
+    def test_soc_gate(self):
+        extract = {("41860", "15-2051"): {}, ("41860", "11-3021"): {}}
+        ok = {"soc_candidates": {"codes": ["15-2051"], "set_by": "x"}}
+        self.assertEqual(wl.check_soc_gate(ok, extract), ["15-2051"])
+        for bad in ({"soc_candidates": {"codes": ["15-2051"], "set_by": None}},
+                    {"soc_candidates": {"codes": ["99-9999"], "set_by": "x"}},
+                    {"soc_candidates": {"codes": []}}, {}):
+            with self.assertRaises(wl.GateStop):
+                wl.check_soc_gate(bad, extract)
 
 
 class EndToEnd(unittest.TestCase):
@@ -189,6 +212,20 @@ class EndToEnd(unittest.TestCase):
         # Regression (found 2026-10-21): a missing data file raised a traceback (exit 1).
         self.assertEqual(self.cli("--national", str(self.tmp / "nope.xlsx")), 2)
         self.assertFalse((self.tmp / "out").exists())
+
+    def test_unsigned_soc_set_writes_nothing(self):
+        # Regression (TA review 2026-10-21): a missing set_by raised KeyError after run-log.json was written.
+        sc = json.loads((self.tmp / "sc.json").read_text())
+        del sc["soc_candidates"]["set_by"]
+        (self.tmp / "sc.json").write_text(json.dumps(sc))
+        self.assertEqual(self.cli(), 2)
+        self.assertFalse((self.tmp / "out").exists())
+
+    def test_stale_liveness_stops_every_scenario(self):
+        (self.tmp / "rule.json").write_text(json.dumps({**Gates.rule, "checked_on": "2026-11-19"}))
+        self.assertEqual(self.cli("--run-date", "2026-11-19"), 0)
+        log = json.loads((self.tmp / "out" / "run-log.json").read_text())
+        self.assertTrue(all(s["route"] == "stop-liveness" for s in log["scenarios"]))
 
     def test_extract_matches_its_provenance_hash(self):
         prov = json.loads((HERE / "data" / "oflc-2026-27-pm-extract.provenance.json").read_text())

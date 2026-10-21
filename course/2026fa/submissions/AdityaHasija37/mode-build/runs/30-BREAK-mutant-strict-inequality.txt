@@ -1,0 +1,23 @@
+$ cd $T/mut && python3 -m unittest -v test_wage_level.Levels.test_boundaries_exactly_equal_meets_level   # $T/mut = repo copy with 'salary >= levels[lv]' mutated to 'salary > levels[lv]'
+# run at 2026-10-21T19:57:08Z
+203:        if salary > levels[lv]:
+test_boundaries_exactly_equal_meets_level (test_wage_level.Levels.test_boundaries_exactly_equal_meets_level) ... FAIL
+
+======================================================================
+FAIL: test_boundaries_exactly_equal_meets_level (test_wage_level.Levels.test_boundaries_exactly_equal_meets_level)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/private/var/folders/w6/ktsnymc54j3391m2cws7q0y40000gn/T/tmp.mauSob2hMF/mut/test_wage_level.py", line 48, in test_boundaries_exactly_equal_meets_level
+    self.assertEqual(wl.level_met(lv["II"], lv), "II")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'I' != 'II'
+- I
++ II
+? +
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (failures=1)
+# exit 1

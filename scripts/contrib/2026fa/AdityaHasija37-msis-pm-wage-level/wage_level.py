@@ -283,11 +283,32 @@ def check_run_gates(persona: dict, rule_check: dict, run_date: date) -> dict:
     return {"opt_start": start.isoformat(), "opt_end": opt_end.isoformat(), "seasons": seasons}
 
 
-def scenario_gate(sc: dict) -> tuple[str | None, str | None]:
+def check_soc_gate(scen: dict, extract: dict) -> list:
+    """Gate S: a named person signed the SOC list, and every code exists in the extract."""
+    cand = scen.get("soc_candidates") or {}
+    socs = cand.get("codes") or []
+    if not socs:
+        raise GateStop("soc-set: soc_candidates.codes is missing or empty")
+    if not cand.get("set_by"):
+        raise GateStop("soc-set: soc_candidates.set_by is empty — a named person must sign the SOC list")
+    known = {soc for (_, soc) in extract}
+    missing = [s for s in socs if s not in known]
+    if missing:
+        raise GateStop(f"soc-set: code(s) not in the OFLC extract: {', '.join(missing)} — re-run extract with them")
+    return socs
+
+
+def scenario_gate(sc: dict, run_date: date) -> tuple[str | None, str | None]:
     """Per-scenario gates → (route, reason) if the scenario must not be leveled, else (None, None)."""
     lv = sc.get("liveness") or {}
     if lv.get("status") != "active":
         return "stop-liveness", f"posting liveness is '{lv.get('status')}' (only 'active' passes; uncertain counts as closed)"
+    if lv.get("checked_on") != run_date.isoformat():
+        return "stop-liveness", (f"liveness was checked on {lv.get('checked_on')}, not on the run date "
+                                 f"{run_date.isoformat()}; re-run ats:liveness")
+    ev = lv.get("evidence")
+    if not ev or not (REPO / ev).is_file():
+        return "stop-liveness", f"liveness evidence file not found: {ev}"
     pay = sc.get("pay") or {}
     if not pay.get("basis_confirmed_by"):
         return "stop-pay-basis", "nobody has confirmed whether the posted range is base salary"
@@ -322,11 +343,12 @@ def run(args) -> int:
         print(f"STOP {e}", file=sys.stderr)
         return 2
 
-    socs = scen["soc_candidates"]["codes"]
-    if not socs:
-        print("STOP input: soc_candidates.codes is empty", file=sys.stderr)
-        return 2
     extract = read_extract(Path(args.extract))
+    try:
+        socs = check_soc_gate(scen, extract)
+    except GateStop as e:
+        print(f"STOP {e}", file=sys.stderr)
+        return 2
     national = read_national_xlsx(Path(args.national), set(socs))
     compact = read_compact(Path(args.compact), set(socs))
     eighty = read_80days(Path(args.eighty_days), {s.get("company_80days") for s in scen["scenarios"]})
@@ -334,7 +356,7 @@ def run(args) -> int:
 
     results = []
     for sc in scen["scenarios"]:
-        route, reason = scenario_gate(sc)
+        route, reason = scenario_gate(sc, run_date)
         rec = eighty.get(sc.get("company_80days"))
         sponsorship = ({"approvals": int(float(rec["Total Approvals"] or 0)), "denials": int(float(rec["Total Denials"] or 0)),
                         "approval_rate_pct": round(float(rec["Approval_Rate"]), 1) if rec["Approval_Rate"] else None,
@@ -396,7 +418,6 @@ def run(args) -> int:
         results.append(item)
 
     out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
     log = {
         "_recipe": RECIPE, "_script": "scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/wage_level.py",
         "version": VERSION, "run_date": run_date.isoformat(),
@@ -411,8 +432,11 @@ def run(args) -> int:
         "scenarios": results,
         "cannot_verify": CANNOT_VERIFY,
     }
-    (out / "run-log.json").write_text(json.dumps(log, indent=2) + "\n")
-    (out / "report.md").write_text(render_report(log))
+    # Render both artifacts before writing either, so a failure never leaves one without the other.
+    log_text, report_text = json.dumps(log, indent=2) + "\n", render_report(log)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "run-log.json").write_text(log_text)
+    (out / "report.md").write_text(report_text)
     print(f"wrote {out / 'run-log.json'} and {out / 'report.md'}")
     s = log["summary"]
     print(f"scenarios {s['scenarios']} → leveled {s['leveled']} · stopped {s['stopped']} "
@@ -432,7 +456,8 @@ CANNOT_VERIFY = [
     "Whether another employer also registers the student at a lower level (USCIS then uses the lowest level).",
     "E-Verify enrollment of the employer (required for STEM OPT) and degree relatedness of the role.",
     "Whether the worksite in the posting is where the person will actually work (remote/hybrid changes the area).",
-    "Other cost or eligibility policy (e.g., the 2025 petition-fee proclamation and its exemptions) — not modeled.",
+    "Fee and entry policy: Proclamation 11069 (FR 2026-19554; $100,000 entry payment extended to 2027-09-21) and "
+    "the DHS proposed $103,265 cap-petition fee (FR 2026-17324, proposed only), as of 2026-10-21 — not modeled.",
 ]
 
 
@@ -485,7 +510,8 @@ def render_report(log: dict) -> str:
              "entries changes with the job code the employer picks: " + ("; ".join(spreads) if spreads else "none leveled") + ". "
              f"A shortcut using national pay data disagreed with the official city level in "
              f"{s['proxy_disagrees']} of {s['proxy_compared']} comparisons; it put the level too high "
-             f"{s['proxy_overstates']} times and too low {s['proxy_understates']} times.\n")
+             f"{s['proxy_overstates']} times and too low {s['proxy_understates']} times. That holds for these postings "
+             f"and job codes only; the national data is also one survey year older than the official table.\n")
     L.append(f"**What it cannot tell you.** Your chance of being selected (not computable from this data), which code "
              f"the employer will actually file, or your final salary. You have {len(t['seasons'])} lottery "
              f"season(s) left before your work authorization ends ({t['opt_end']}, assumed).\n")
@@ -524,7 +550,7 @@ def render_report(log: dict) -> str:
             L.append(f"\n**Stopped — {r['route']}.** {r['reason']}. No level is shown.\n")
             continue
         L.append("")
-        L.append("| SOC (employer's choice) | OFLC Level I / II / III / IV (annual) | Low | Mid | High | Entries L/M/H | Mid: to next level | National proxy (now · proposed) | Cognitive Pivot |")
+        L.append("| SOC (employer's choice) | OFLC Level I / II / III / IV (annual) | Low | Mid | High | Entries L/M/H | Mid: to next level | National proxy at Mid (now · proposed) | Cognitive Pivot |")
         L.append("|---|---|---|---|---|---|---|---|---|")
         for soc in log["soc_candidates"]["codes"]:
             rows = {x["offer_point"]: x for x in r["rows"] if x["soc"] == soc}
@@ -545,6 +571,11 @@ def render_report(log: dict) -> str:
                      f"{ent} | {gap_t} | {proxy} | {m['cognitive_pivot_score'] if m['cognitive_pivot_score'] is not None else '—'} |")
         sp = r["spread"]
         L.append("")
+        cmp = [x for x in r["rows"] if x["proxy_disagrees"] is not None]
+        over = sum(1 for x in cmp if x["proxy_direction"] == "overstates")
+        under = sum(1 for x in cmp if x["proxy_direction"] == "understates")
+        L.append(f"National proxy vs the official level, all three offer points: disagrees "
+                 f"{over + under}/{len(cmp)} (too high {over}, too low {under}); the ⚠ column shows the midpoint only.")
         L.append("Spread across SOC codes (entries): " + " · ".join(
             f"{k} {v['min_entries']}–{v['max_entries']}" + (f" (below Level I: {', '.join(v['below_level_I_socs'])})" if v["below_level_I_socs"] else "")
             for k, v in sp.items()))

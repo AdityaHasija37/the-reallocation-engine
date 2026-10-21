@@ -10,7 +10,7 @@ recipe_version: 0.1.0
 
 ## Executive summary
 
-**What it does.** Since March 2026 the H-1B lottery is no longer a flat draw. Each
+**What it does.** Since the March 2026 registration season the H-1B lottery is no longer a flat draw. Each
 registration gets 1, 2, 3 or 4 entries depending on which of four official wage levels
 the offered salary reaches. The level is not set by the salary alone. It depends on the
 job code the employer files and the city the job is in, and the applicant chooses
@@ -37,20 +37,23 @@ employer.
 
 **What it found on its first run.** Take Flexport's Senior PM range at its midpoint,
 $193,500 in San Francisco. It earns 1 entry if filed as an IT manager and 4 if filed as
-a management analyst. A shortcut using national pay data put the level higher than the
-official city table in 23 of 54 comparisons, so national figures overstate the level in
-these two metros.
+a management analyst. For these three postings, a shortcut using national pay data put
+the level higher than the official city table in 23 of 54 comparisons and never lower.
+Most of that gap stays even after allowing for the national data being a year older, so
+the city, not the year, accounts for most of the error.
 
 **Status.** DRAFT. A full run on live postings and official data completed. Six
 proposed additions are still open, and the lifecycle does not allow skipping the
 "specified" stage while any are open.
+
+## Contract (for the agent)
 
 Two customers: this file is for the agent. The person-facing page is
 `recipes/cases/2026fa/AdityaHasija37-msis-pm-wage-level.card.md`, and every run writes
 a human report (`out/report.md`) and an agent log (`out/run-log.json`).
 
 **Handoff condition (done when):** `wage_level.py run` exits `0`; `out/run-log.json` and
-`out/report.md` both exist; every scenario has exactly one `route` in {`leveled`,
+`out/report.md` both exist (both are rendered before either is written); every scenario has exactly one `route` in {`leveled`,
 `stop-liveness`, `stop-pay-basis`, `stop-worksite`} with a `reason` when stopped; every
 leveled row's `level` traces to a row of the committed OFLC extract whose sha256
 matches its provenance file; every `selection_probability` is `null`; the report's
@@ -95,7 +98,10 @@ or as legal advice about a petition.
 | Posting liveness | `npm run ats:liveness -- "<posting url>"` (repo script, unchanged) | record | `uncertain` counts as closed |
 | Repo conformance and privacy | `npm run verify`, `npm run doctor` | machine | Both exit 0 |
 | Leveling logic | `python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/wage_level.py run` | n/a | Read the report |
-| Tests | `python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/test_wage_level.py` | n/a | 26/26 pass |
+| Tests | `python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/test_wage_level.py` | n/a | 31/31 pass (Python 3.13 and 3.12) |
+| Independent cross-check | `python3 …/xcheck_raw.py …` (recomputes every level from the raw OFLC file) | n/a | 0 mismatches |
+| Vintage sensitivity | `python3 …/sensitivity_vintage.py` (re-counts proxy disagreements with national wages scaled up 0–20%) | derived | Read the table |
+| Policy citations | `…/data/policy-sources.json` (Federal Register citations, retrieved 2026-10-21) | record | Gate R |
 | Persona | `…/fixtures/persona.fixture.json` | your-input | OPT start date |
 | Scenarios (postings, worksite, pay sentence) | `…/fixtures/scenarios.<date>.json` | record + your-input (basis, SOC set) | Gates P and S |
 | Rule check | `…/fixtures/rule-check.json` | your-input (a named person's check) | Gate R |
@@ -111,7 +117,8 @@ file where its absence bites.
 
 | Addition | Type | State | Why it belongs in the engine |
 |---|---|---|---|
-| OFLC wage-year tables (`fetch-oflc.sh` + `wage_level.py extract`) | data source | **built, ran** (pinned sha256, provenance file) | The repo has only *national* OEWS; the lottery level is set by the *area* table. Without it, every level is a guess that runs high in SF and Seattle (23/54 here). |
+| OFLC wage-year tables (`fetch-oflc.sh` + `wage_level.py extract`) | data source | **built, ran** (pinned sha256, provenance file) | The repo has only *national* OEWS; the lottery level is set by the *area* table. Without it, every level is a guess that ran high in SF and Seattle (23/54 here). The extract also carries 13-1161 and 15-2031, ready for a product-analyst run, and San Jose, used by the "High Wage" refusal test; neither is in this run's scenarios. |
+| `sensitivity_vintage.py` | command | **built, ran** | Tests whether the proxy's error is just the one-year data gap (it isn't: 18/54 still overstate at +10%). |
 | `wage_level.py run` | command | **built, ran** (26 tests) | Turns a posted range into entries per SOC; nothing in the repo connects salary to the 2026 weighted lottery. |
 | OFLC LCA disclosure data | DATA SOURCE | proposed (see *Cannot verify*) | Records which SOC and level each employer actually filed for each title, which turns Gate S from a judgment into a record. |
 | `lca-soc-lookup.py` | DEV | proposed | Employer × title → filed SOC/level distribution; replaces the hand-set candidate list. |
@@ -124,7 +131,7 @@ file where its absence bites.
 
 | Rule | Value | Source |
 |---|---|---|
-| Lottery entries by level | I = 1, II = 2, III = 3, IV = 4 | DHS final rule, *Weighted Selection Process…*, 90 FR (Dec 29, 2025), effective Feb 27, 2026 |
+| Lottery entries by level | I = 1, II = 2, III = 3, IV = 4 | DHS final rule, *Weighted Selection Process…*, 90 FR 60864 (FR doc 2025-23853, Dec 29, 2025), effective Feb 27, 2026; all policy citations in `…/data/policy-sources.json` |
 | Level met | the highest OFLC level whose annual wage the salary **equals or exceeds**; below Level I is reported as `below-I`, with no entries | rule as described in the final rule; boundary tested |
 | Hourly → annual | × 2080, unless the OFLC label is `Annual Wage` | OFLC convention; tested |
 | Offer points | posted low, midpoint (derived), posted high | your-input; a range is not an offer |
@@ -140,9 +147,9 @@ level shown.
 
 | Gate | Testable condition | Pass | Fail | Who clears |
 |---|---|---|---|---|
-| **L — liveness** (scenario) | `npm run ats:liveness -- <url>` printed `active` on the run date; the result file is cited in `scenario.liveness.evidence` | scenario leveled | `expired` or `uncertain` → `stop-liveness` | machine; human records it |
+| **L — liveness** (scenario) | `liveness.status == "active"` **and** `liveness.checked_on` equals the run date **and** the `liveness.evidence` file (the saved `npm run ats:liveness -- <url>` output) exists in the repo (all three enforced by the script) | scenario leveled | `expired` / `uncertain`, a check from another day, or no evidence file → `stop-liveness` | machine; human records it |
 | **P — pay basis** (scenario) | `pay.basis == "base"` **and** `pay.basis_confirmed_by` is a named person who read `pay.quoted_text` | scenario leveled | OTE/commission/total-comp/unknown, or unconfirmed → `stop-pay-basis` | named human |
-| **S — SOC candidate set** (run) | `soc_candidates.set_by` names a person; every code is in the extract | run proceeds | empty set → exit 2 | named human |
+| **S — SOC candidate set** (run) | `soc_candidates.codes` non-empty, `soc_candidates.set_by` names a person, and every code exists in the OFLC extract (all enforced) | run proceeds | any of these fails → exit 2, nothing written | named human |
 | **R — rule in force** (run) | `rule-check.json` has `regime_in_force`, `checked_on` (0–30 days before the run), `checked_by`, `how`; the regime is `current-2005` (the only regime the 2026-27 OFLC file encodes) | run proceeds | any field missing, stale, or a newer regime → exit 2, nothing written | named human |
 | **T — timeline** (run) | ≥ 1 lottery season remains before OPT/STEM OPT ends | run proceeds | 0 seasons, or bad OPT date → exit 2 | machine |
 | **D — release** | A named person has read `out/report.md`, including "What this cannot tell you", before using it with an employer | use the report | no use | named human |
@@ -183,7 +190,7 @@ lottery window is not "lower priority"; it is out.
 - The four official wage levels (annual) for each SOC in each of the three metros, for the
   July 2026 – June 2027 wage year, and which level a given salary meets under each SOC.
 - The dollar gap from a salary to the next level.
-- That the posting was live on the run date (`ats:liveness`).
+- That the posting was live on the run date (`ats:liveness`; the script refuses a check from any other day, or one with no saved evidence file).
 - The posted pay sentence, verbatim, as of capture.
 - Where OFLC publishes no levels ("High Wage" — San Jose × 11-3021 in this extract), so
   the mode refuses to level that row.
@@ -286,14 +293,14 @@ Stop, write nothing, exit `2`:
 - Gate R fails (missing field, older than 30 days, future date, or a regime other than
   `current-2005` with the 2026-27 file);
 - Gate T fails (no season left, OPT start missing or not `YYYY-MM-DD`);
-- the persona, scenarios or rule-check file is missing or not valid JSON; the SOC set is empty;
+- the persona, scenarios or rule-check file is missing or not valid JSON; the SOC set is empty, unsigned, or names a code that is not in the extract (Gate S);
 - any data file (OFLC extract, national OEWS, compact, 80 Days) is missing;
 - the OFLC extract's sha256 does not match its provenance file (the extract was edited
   after extraction; added 2026-10-21 after a break test showed the run levelled a
   hand-edited extract).
 
 Do not level the scenario, and say why in the report:
-- liveness is anything but `active` (`stop-liveness`);
+- liveness is anything but `active`, was checked on a day other than the run date, or has no saved evidence file (`stop-liveness`);
 - the pay range is not confirmed base salary (`stop-pay-basis`);
 - the worksite has no OFLC area (`stop-worksite`).
 

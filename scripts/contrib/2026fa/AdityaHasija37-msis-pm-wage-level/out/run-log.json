@@ -2598,6 +2598,6 @@
     "Whether another employer also registers the student at a lower level (USCIS then uses the lowest level).",
     "E-Verify enrollment of the employer (required for STEM OPT) and degree relatedness of the role.",
     "Whether the worksite in the posting is where the person will actually work (remote/hybrid changes the area).",
-    "Other cost or eligibility policy (e.g., the 2025 petition-fee proclamation and its exemptions) \u2014 not modeled."
+    "Fee and entry policy: Proclamation 11069 (FR 2026-19554; $100,000 entry payment extended to 2027-09-21) and the DHS proposed $103,265 cap-petition fee (FR 2026-17324, proposed only), as of 2026-10-21 \u2014 not modeled."
   ]
 }
