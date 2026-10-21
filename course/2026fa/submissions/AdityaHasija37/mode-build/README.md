@@ -40,20 +40,26 @@ in the zip. No maintained file is modified.
 
 ```bash
 npm install
-python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/wage_level.py run --run-date 2026-10-21
+python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/wage_level.py run --run-date 2026-10-21 --replay --out /tmp/wl-replay
 python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/test_wage_level.py
 npm run verify && npm run doctor
 ```
 
-The run output should match `scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/out/`
-byte for byte (sha256 is in `runs/23-determinism-rerun.txt`). To rebuild the data from the
-government source, run `fetch-oflc.sh 2026-27` and then `wage_level.py extract` (12 MB
-download, checksum-pinned).
+The run's freshness gates are measured against the run date, so any run on a day other
+than 2026-10-21 needs `--replay`, and its log and report are stamped **REPLAY**. Apart
+from that stamp (one line in the report, the `mode` field in the log), the replay output
+equals the committed `out/` (`diff /tmp/wl-replay/report.md
+scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/out/report.md` shows only the
+stamp). The same-day run's sha256 is in `runs/15-determinism.txt`, and `runs/17` is a fresh
+clone of this branch reproducing it. To rebuild the data from the government source, run
+`fetch-oflc.sh 2026-27` and then `wage_level.py extract` (12 MB download, checksum-pinned).
+To regenerate every capture in `runs/`: `bash scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/capture-evidence.sh`.
 
 ## Engine commands actually run
 
-`npm run verify` · `npm run doctor` · `npm run ats:liveness` (×5, including 2 break
-attempts) · `npm run pii-scan`, plus the mode's own scripts. All outputs are in `runs/`.
+`npm run verify` · `npm run doctor` · `npm run ats:liveness` (×5: the 3 scenario postings,
+1 break attempt on a fake job ID, and 1 re-check of a posting that timed out on the first
+pass) · `npm run pii-scan`, plus the mode's own scripts. All outputs are in `runs/`.
 
 ## Related earlier work
 

@@ -3,6 +3,7 @@
   "_script": "scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/wage_level.py",
   "version": "0.1.0",
   "run_date": "2026-10-21",
+  "mode": "live",
   "inputs": {
     "persona": "scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/fixtures/persona.fixture.json",
     "scenarios": "scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/fixtures/scenarios.2026-10-21.json",

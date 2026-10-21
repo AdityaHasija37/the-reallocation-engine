@@ -26,14 +26,18 @@ management or systems analyst, "computer occupations, all other", or a data scie
 and those codes' Level I wages in San Francisco range from $73,258 to $167,565. At
 Flexport's posted Senior PM midpoint ($193,500 base, live on 2026-10-21), the official SF
 table gives **1 entry** under the IS-manager code and **4** under management analyst.
-The posting doesn't say which applies. The employer's counsel knows; the student only
-knows to ask after seeing this table.
+The posting doesn't say which applies, and the student only knows to ask after seeing
+this table.
 
 ## Engine layers
 
-**Cognitive Pivot** (OEWS wage distributions by SOC, plus each code's Cognitive Pivot
-score). **80 Days** (the employer's H-1B record and the visa-timeline gate). **Job-Ops**
-(posting liveness as a hard gate).
+- **80 Days → timeline.** OPT plus STEM gives me three lottery seasons; the mode stops
+  when none are left and shows the employer's own H-1B record beside every level.
+- **Job-Ops → liveness.** A level for a closed posting is worthless, so liveness is a hard
+  gate, read from the repo checker's saved output.
+- **Cognitive Pivot → the SOC itself.** The wage tables are OEWS by SOC, the same
+  occupational frame the Cognitive Pivot layer scores. The mode shows each code's score as
+  context only: it feeds no decision, so it is a side-by-side view, not a weighting.
 
 ## Failure modes specific to this domain
 
@@ -45,14 +49,14 @@ disagreed with the official level in **23 of 54** comparisons, all in the flatte
 direction.
 
 Part of that could be data age: the national file is May 2024 and the official table is
-built on May 2025. When I scaled national wages up 10% (several years' growth), **18 of
-54** still overstated, so the city, not the year, drives most of the error. The sample is
-three postings and a hand-picked set of codes, so the rate isn't general; the direction
-is the warning.
+built on May 2025. Allowing a generous 10% for that one year still leaves **18 of 54**
+overstated. My inference is that the city drives most of the error, but the approximate
+percentile mapping behind the shortcut could also contribute. With three postings and a
+hand-picked set of codes the rate isn't general; the direction is the warning.
 
 It is hardest to catch for the diligent student, because checking BLS data *feels* like
-verification. It is also hard for anyone comparing metros: the same national figure is
-roughly right in a cheaper city and wrong in SF or Seattle.
+verification, and for anyone comparing metros, since one national figure fits a cheaper
+city but not SF or Seattle.
 
 **2. A posted pay range is not the offered wage.** Some ranges required by pay-transparency
 laws are **on-target earnings**, meaning base plus commission. Verkada's Business Systems

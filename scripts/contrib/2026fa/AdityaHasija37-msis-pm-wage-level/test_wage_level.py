@@ -100,7 +100,7 @@ class Timeline(unittest.TestCase):
 
 class Gates(unittest.TestCase):
     persona = {"opt_start": {"value": "2027-01-15"}, "opt_months": 12, "stem_extension_months": 24}
-    rule = {"regime_in_force": "current-2005", "checked_on": "2026-10-21", "checked_by": "x", "how": "y"}
+    rule = {"regime_in_force": "current-2005", "checked_on": "2026-10-21", "checked_by": "Test Person", "how": "y"}
 
     def test_rule_check_must_be_named(self):
         with self.assertRaises(wl.GateStop):
@@ -124,9 +124,10 @@ class Gates(unittest.TestCase):
     EVIDENCE = "course/2026fa/submissions/AdityaHasija37/mode-build/runs/04-liveness-S2-flexport.txt"
 
     def base_sc(self, **pay):
-        return {"liveness": {"status": "active", "checked_on": "2026-10-21", "evidence": self.EVIDENCE},
+        return {"posting_url": "https://job-boards.greenhouse.io/flexport/jobs/8158023",
+                "liveness": {"status": "active", "checked_on": "2026-10-21", "evidence": self.EVIDENCE},
                 "worksite": {"oflc_area": "41860"},
-                "pay": {"basis": "base", "basis_confirmed_by": "x", **pay}}
+                "pay": {"basis": "base", "basis_confirmed_by": "Test Person", "low": 160000, "high": 180000, **pay}}
 
     def test_scenario_gates(self):
         self.assertEqual(wl.scenario_gate(self.base_sc(), self.RUN), (None, None))
@@ -146,12 +147,44 @@ class Gates(unittest.TestCase):
         sc["liveness"]["evidence"] = "course/nope.txt"
         self.assertEqual(wl.scenario_gate(sc, self.RUN)[0], "stop-liveness")
 
+    def test_liveness_evidence_is_parsed_not_just_present(self):
+        # Regression (second TA review): any existing file, even outside the repo, used to pass.
+        for ev in ("README.md", "/etc/hosts", "../../../../etc/hosts",
+                   "course/2026fa/submissions/AdityaHasija37/mode-build/runs/03-liveness-S1-verkada.txt"):
+            sc = self.base_sc()
+            sc["liveness"]["evidence"] = ev          # last one: real capture, but for another posting
+            self.assertEqual(wl.scenario_gate(sc, self.RUN)[0], "stop-liveness", ev)
+        sc = self.base_sc()
+        sc["liveness"]["checked_on"] = "2026-10-20"
+        self.assertEqual(wl.scenario_gate(sc, date(2026, 10, 20))[0], "stop-liveness")  # no capture that day
+
+    def test_names_must_be_names(self):
+        for who in ("", " ", "   ", "x", "12345", None):
+            self.assertFalse(wl.named(who), repr(who))
+            self.assertEqual(wl.scenario_gate(self.base_sc(basis_confirmed_by=who), self.RUN)[0], "stop-pay-basis")
+            with self.assertRaises(wl.GateStop):
+                wl.check_run_gates(self.persona, {**self.rule, "checked_by": who}, self.RUN)
+        self.assertTrue(wl.named("Aditya Hasija (AdityaHasija37)"))
+
+    def test_bad_pay_range(self):
+        for pay in ({"low": None}, {"low": "abc"}, {"low": 200000, "high": 100000}, {"low": 0, "high": 1}):
+            self.assertEqual(wl.scenario_gate(self.base_sc(**pay), self.RUN)[0],
+                             "stop-pay-range", pay)
+        self.assertEqual(wl.scenario_gate(self.base_sc(), self.RUN), (None, None))
+
+    def test_area_without_extract_rows(self):
+        self.assertEqual(wl.scenario_gate(self.base_sc(), self.RUN, {"42660"})[0], "stop-worksite")
+
+    def test_bad_checked_on_is_a_clean_stop(self):
+        with self.assertRaises(wl.GateStop):
+            wl.check_run_gates(self.persona, {**self.rule, "checked_on": "Oct 21"}, self.RUN)
+
     def test_soc_gate(self):
         extract = {("41860", "15-2051"): {}, ("41860", "11-3021"): {}}
-        ok = {"soc_candidates": {"codes": ["15-2051"], "set_by": "x"}}
+        ok = {"soc_candidates": {"codes": ["15-2051"], "set_by": "Test Person"}}
         self.assertEqual(wl.check_soc_gate(ok, extract), ["15-2051"])
         for bad in ({"soc_candidates": {"codes": ["15-2051"], "set_by": None}},
-                    {"soc_candidates": {"codes": ["99-9999"], "set_by": "x"}},
+                    {"soc_candidates": {"codes": ["99-9999"], "set_by": "Test Person"}},
                     {"soc_candidates": {"codes": []}}, {}):
             with self.assertRaises(wl.GateStop):
                 wl.check_soc_gate(bad, extract)
@@ -170,7 +203,7 @@ class EndToEnd(unittest.TestCase):
         (self.tmp / "rule.json").write_text(json.dumps(Gates.rule))
 
     def cli(self, *extra):
-        return wl.main(["run", "--run-date", "2026-10-21", "--scenarios", str(self.tmp / "sc.json"),
+        return wl.main(["run", "--run-date", "2026-10-21", "--replay", "--scenarios", str(self.tmp / "sc.json"),
                         "--rule-check", str(self.tmp / "rule.json"), "--out", str(self.tmp / "out"), *extra])
 
     def test_run_writes_two_artifacts_and_never_a_probability(self):
@@ -226,6 +259,23 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual(self.cli("--run-date", "2026-11-19"), 0)
         log = json.loads((self.tmp / "out" / "run-log.json").read_text())
         self.assertTrue(all(s["route"] == "stop-liveness" for s in log["scenarios"]))
+
+    def test_backdated_run_needs_replay_and_is_stamped(self):
+        # Regression (second TA review): backdating --run-date silently satisfied the freshness gates.
+        if wl.date.today() != date(2026, 10, 21):
+            self.assertEqual(wl.main(["run", "--run-date", "2026-10-21", "--scenarios", str(self.tmp / "sc.json"),
+                                      "--rule-check", str(self.tmp / "rule.json"), "--out", str(self.tmp / "o2")]), 2)
+        self.assertEqual(wl.main(["run", "--run-date", "1999-01-01", "--scenarios", str(self.tmp / "sc.json"),
+                                  "--rule-check", str(self.tmp / "rule.json"), "--out", str(self.tmp / "o3")]), 2)
+        self.assertFalse((self.tmp / "o3").exists())
+        self.assertEqual(self.cli(), 0)
+        log = json.loads((self.tmp / "out" / "run-log.json").read_text())
+        if wl.date.today() != date(2026, 10, 21):
+            self.assertTrue(log["mode"].startswith("replay"))
+            self.assertIn("**REPLAY**", (self.tmp / "out" / "report.md").read_text())
+
+    def test_bad_run_date_is_a_clean_stop(self):
+        self.assertEqual(wl.main(["run", "--run-date", "21/10/2026", "--out", str(self.tmp / "o4")]), 2)
 
     def test_extract_matches_its_provenance_hash(self):
         prov = json.loads((HERE / "data" / "oflc-2026-27-pm-extract.provenance.json").read_text())

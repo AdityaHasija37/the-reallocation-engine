@@ -28,11 +28,12 @@ levels a pay range that includes commission, and never prints a chance of select
 | `fetch-oflc.sh` | Pinned, checksum-verified download of an OFLC wage year into `raw/` (gitignored) |
 | `checksums.lock` | sha256 of each fetched OFLC zip (trust on first use, then verified) |
 | `wage_level.py` | `extract` (raw → committed extract) and `run` (scenarios → report + log) |
-| `test_wage_level.py` | 31 offline tests (`unittest`; pass on Python 3.13 and 3.12) |
-| `xcheck_raw.py` | Independent check: recomputes every level from the raw OFLC file (needs `raw/`) |
+| `test_wage_level.py` | 38 offline tests (`unittest`; pass on Python 3.13 and 3.12) |
+| `xcheck_raw.py` | Independent check: recomputes every row's wages, level, entries and gap from the raw OFLC file without importing the mode (needs `raw/`) |
 | `sensitivity_vintage.py` | Re-counts proxy disagreements with national wages scaled up 0–20% (data-age check) |
 | `data/oflc-2026-27-pm-extract.csv` | 24 rows: 3 metros × 8 SOC codes, OFLC wage year 2026-27 |
 | `data/oflc-2026-27-pm-extract.provenance.json` | origin, zip / source / extract sha256, units, missing pairs |
+| `capture-evidence.sh` | Regenerates every capture in the submission's `runs/` (verbatim command, timestamp, output, exit code) |
 | `data/policy-sources.json` | Federal Register citations for every policy rule used or listed as not modeled |
 | `fixtures/persona.fixture.json` | Persona (no private data) |
 | `fixtures/scenarios.2026-10-21.json` | Four posting × worksite scenarios captured 2026-10-21 |
@@ -44,7 +45,7 @@ levels a pay range that includes commission, and never prints a chance of select
 ```bash
 bash scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/fetch-oflc.sh 2026-27   # only to rebuild the extract
 python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/wage_level.py extract
-python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/wage_level.py run --run-date 2026-10-21
+python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/wage_level.py run --run-date 2026-10-21 --replay   # --replay on any day after 2026-10-21
 python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/test_wage_level.py
 ```
 

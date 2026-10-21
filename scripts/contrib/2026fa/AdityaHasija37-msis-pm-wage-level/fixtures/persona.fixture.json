@@ -1,10 +1,17 @@
 {
-  "_label": "Fictional-safe persona: the author's own public situation (program, graduation term, target roles). No private data.",
+  "_label": "The author's own situation at the level of detail already public in this submission (program, graduation term, experience band, target roles and metros). No private data such as résumé, contacts or applications.",
   "program": "MS Information Systems (STEM-designated)",
   "graduation": "2026-12",
   "experience_years": 3.5,
-  "target_roles": ["Product Manager", "AI Product Manager", "Product Analyst"],
-  "target_metros": ["San Francisco Bay Area", "Seattle"],
+  "target_roles": [
+    "Product Manager",
+    "AI Product Manager",
+    "Product Analyst"
+  ],
+  "target_metros": [
+    "San Francisco Bay Area",
+    "Seattle"
+  ],
   "opt_start": {
     "value": "2027-01-15",
     "source": "your-input",

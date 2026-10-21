@@ -62,6 +62,11 @@ class GateStop(Exception):
     """A run-level gate failed: write nothing, exit 2."""
 
 
+def named(v) -> bool:
+    """A gate signer must look like a name or handle: ≥ 3 non-space characters including a letter."""
+    return isinstance(v, str) and len(v.strip()) >= 3 and any(ch.isalpha() for ch in v)
+
+
 # ───────────────────────── readers ─────────────────────────
 
 def read_extract(path: Path) -> dict:
@@ -172,6 +177,12 @@ def check_inputs(args) -> str:
         prov = json.loads(prov_path.read_text())
     except (OSError, json.JSONDecodeError) as e:
         raise GateStop(f"input: OFLC extract has no readable provenance file ({prov_path.name}): {e}")
+    lock = HERE / "checksums.lock"
+    if lock.is_file() and prov.get("zip_sha256"):
+        pins = dict(line.split() for line in lock.read_text().splitlines() if line.strip())
+        zip_name = Path(prov.get("origin", "")).name
+        if pins.get(zip_name) != prov["zip_sha256"]:
+            raise GateStop(f"input: provenance zip sha256 for {zip_name} does not match checksums.lock")
     got = sha256(Path(args.extract))
     if got != prov.get("extract_sha256"):
         raise GateStop(f"input: OFLC extract sha256 {got[:16]}… does not match its provenance "
@@ -270,14 +281,21 @@ def check_run_gates(persona: dict, rule_check: dict, run_date: date) -> dict:
         raise GateStop(f"timeline: no H-1B registration season left before OPT/STEM OPT ends {opt_end}")
 
     for k in ("regime_in_force", "checked_on", "checked_by", "how"):
-        if not rule_check.get(k):
+        v = rule_check.get(k)
+        if not (v.strip() if isinstance(v, str) else v):
             raise GateStop(f"rule-check: '{k}' missing — a named person must check which DOL level rule is in force")
+    if not named(rule_check["checked_by"]):
+        raise GateStop(f"rule-check: checked_by {rule_check['checked_by']!r} does not name a person")
     if rule_check["regime_in_force"] not in REGIMES:
         raise GateStop(f"rule-check: unknown regime '{rule_check['regime_in_force']}'")
     if rule_check["regime_in_force"] != "current-2005":
         raise GateStop("rule-check: the OFLC 2026-27 file encodes the current levels only; "
                        "a run under a newer rule needs a newer OFLC file")
-    age = (run_date - date.fromisoformat(rule_check["checked_on"])).days
+    try:
+        checked = date.fromisoformat(rule_check["checked_on"])
+    except (TypeError, ValueError):
+        raise GateStop(f"rule-check: checked_on {rule_check['checked_on']!r} is not YYYY-MM-DD")
+    age = (run_date - checked).days
     if age < 0 or age > RULE_CHECK_MAX_AGE_DAYS:
         raise GateStop(f"rule-check: checked {age} days before the run (must be 0–{RULE_CHECK_MAX_AGE_DAYS})")
     return {"opt_start": start.isoformat(), "opt_end": opt_end.isoformat(), "seasons": seasons}
@@ -289,8 +307,8 @@ def check_soc_gate(scen: dict, extract: dict) -> list:
     socs = cand.get("codes") or []
     if not socs:
         raise GateStop("soc-set: soc_candidates.codes is missing or empty")
-    if not cand.get("set_by"):
-        raise GateStop("soc-set: soc_candidates.set_by is empty — a named person must sign the SOC list")
+    if not named(cand.get("set_by")):
+        raise GateStop("soc-set: soc_candidates.set_by is empty or not a name — a named person must sign the SOC list")
     known = {soc for (_, soc) in extract}
     missing = [s for s in socs if s not in known]
     if missing:
@@ -298,7 +316,28 @@ def check_soc_gate(scen: dict, extract: dict) -> list:
     return socs
 
 
-def scenario_gate(sc: dict, run_date: date) -> tuple[str | None, str | None]:
+def liveness_evidence_ok(lv: dict, url: str) -> str | None:
+    """Gate L evidence: a saved `npm run ats:liveness` capture inside the repo, timestamped on
+    `checked_on`, whose output marks this exact posting URL active. Returns a failure reason or None."""
+    ev = lv.get("evidence")
+    if not ev:
+        return "no liveness evidence file named"
+    path = (REPO / ev).resolve()
+    try:
+        path.relative_to(REPO)
+    except ValueError:
+        return f"liveness evidence {ev} is outside the repository"
+    if not path.is_file():
+        return f"liveness evidence file not found: {ev}"
+    text = path.read_text(encoding="utf-8", errors="replace")
+    if f"# run at {lv.get('checked_on')}" not in text:
+        return f"liveness evidence {ev} has no capture timestamp on {lv.get('checked_on')}"
+    if not re.search(r"✅ active\s+" + re.escape(url) + r"\s*$", text, re.M):
+        return f"liveness evidence {ev} does not show '✅ active' for {url}"
+    return None
+
+
+def scenario_gate(sc: dict, run_date: date, areas: set | None = None) -> tuple[str | None, str | None]:
     """Per-scenario gates → (route, reason) if the scenario must not be leveled, else (None, None)."""
     lv = sc.get("liveness") or {}
     if lv.get("status") != "active":
@@ -306,17 +345,26 @@ def scenario_gate(sc: dict, run_date: date) -> tuple[str | None, str | None]:
     if lv.get("checked_on") != run_date.isoformat():
         return "stop-liveness", (f"liveness was checked on {lv.get('checked_on')}, not on the run date "
                                  f"{run_date.isoformat()}; re-run ats:liveness")
-    ev = lv.get("evidence")
-    if not ev or not (REPO / ev).is_file():
-        return "stop-liveness", f"liveness evidence file not found: {ev}"
+    bad = liveness_evidence_ok(lv, sc.get("posting_url", ""))
+    if bad:
+        return "stop-liveness", bad
     pay = sc.get("pay") or {}
-    if not pay.get("basis_confirmed_by"):
-        return "stop-pay-basis", "nobody has confirmed whether the posted range is base salary"
+    if not named(pay.get("basis_confirmed_by")):
+        return "stop-pay-basis", "nobody (by name) has confirmed whether the posted range is base salary"
     if pay.get("basis") != "base":
         return "stop-pay-basis", (f"posted range is '{pay.get('basis')}', not base salary; the wage level is "
                                   "judged on base wage, so this range cannot be leveled — ask for the base component")
-    if not sc.get("worksite", {}).get("oflc_area"):
+    try:
+        lo, hi = float(pay["low"]), float(pay["high"])
+    except (KeyError, TypeError, ValueError):
+        return "stop-pay-range", f"pay range is not two numbers: low={pay.get('low')!r}, high={pay.get('high')!r}"
+    if not 0 < lo <= hi:
+        return "stop-pay-range", f"pay range must satisfy 0 < low ≤ high (got {lo:,.0f}–{hi:,.0f})"
+    area = (sc.get("worksite") or {}).get("oflc_area")
+    if not area:
         return "stop-worksite", "no OFLC area for the worksite"
+    if areas is not None and area not in areas:
+        return "stop-worksite", f"OFLC area {area} has no rows in the extract — re-run extract with it"
     return None, None
 
 
@@ -328,7 +376,17 @@ def offer_points(pay: dict) -> list:
 
 
 def run(args) -> int:
-    run_date = date.fromisoformat(args.run_date) if args.run_date else date.today()
+    try:
+        run_date = date.fromisoformat(args.run_date) if args.run_date else date.today()
+    except ValueError:
+        print(f"STOP input: --run-date {args.run_date!r} is not YYYY-MM-DD", file=sys.stderr)
+        return 2
+    replay = run_date != date.today()
+    if replay and not args.replay:
+        print(f"STOP input: --run-date {run_date} is not today ({date.today()}); freshness gates are measured "
+              "against the run date, so a back- or forward-dated run must pass --replay and is stamped REPLAY",
+              file=sys.stderr)
+        return 2
     try:
         persona = json.loads(Path(args.persona).read_text())
         scen = json.loads(Path(args.scenarios).read_text())
@@ -356,7 +414,7 @@ def run(args) -> int:
 
     results = []
     for sc in scen["scenarios"]:
-        route, reason = scenario_gate(sc, run_date)
+        route, reason = scenario_gate(sc, run_date, {a for (a, _) in extract})
         rec = eighty.get(sc.get("company_80days"))
         sponsorship = ({"approvals": int(float(rec["Total Approvals"] or 0)), "denials": int(float(rec["Total Denials"] or 0)),
                         "approval_rate_pct": round(float(rec["Approval_Rate"]), 1) if rec["Approval_Rate"] else None,
@@ -421,6 +479,8 @@ def run(args) -> int:
     log = {
         "_recipe": RECIPE, "_script": "scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/wage_level.py",
         "version": VERSION, "run_date": run_date.isoformat(),
+        "mode": ("replay: run date is not the execution date; gate freshness is as of the run date only"
+                 if replay else "live"),
         "inputs": {"persona": rel(args.persona), "scenarios": rel(args.scenarios), "rule_check": rel(args.rule_check),
                    "oflc_extract": {"path": rel(args.extract), "sha256": extract_sha, "matches_provenance": True},
                    "national_oews": rel(args.national), "compact": rel(args.compact),
@@ -437,7 +497,7 @@ def run(args) -> int:
     out.mkdir(parents=True, exist_ok=True)
     (out / "run-log.json").write_text(log_text)
     (out / "report.md").write_text(report_text)
-    print(f"wrote {out / 'run-log.json'} and {out / 'report.md'}")
+    print(f"wrote {rel(out / 'run-log.json')} and {rel(out / 'report.md')}")
     s = log["summary"]
     print(f"scenarios {s['scenarios']} → leveled {s['leveled']} · stopped {s['stopped']} "
           f"({', '.join(f'{k} {v}' for k, v in s['stopped_by'].items()) or 'none'}); "
@@ -520,6 +580,8 @@ def render_report(log: dict) -> str:
 
     L.append("## Run record\n")
     L.append(f"- Recipe: `{log['_recipe']}` v{log['version']} · script `{log['_script']}`")
+    if log.get("mode", "live") != "live":
+        L.append(f"- **REPLAY** — {log['mode']}")
     L.append(f"- Run date: {log['run_date']} · OFLC extract sha256 `{log['inputs']['oflc_extract']['sha256'][:16]}…`")
     rc = log["gates"]["rule_check"]
     L.append(f"- Level rule in force: **{rc['regime_in_force']}** — checked {rc['checked_on']} by {rc['checked_by']} ({rc['how']})")
@@ -639,7 +701,7 @@ def extract(args) -> int:
             "extracted_on": date.today().isoformat(),
             "script": "scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/wage_level.py extract"}
     dest.with_suffix(".provenance.json").write_text(json.dumps(prov, indent=2) + "\n")
-    print(f"wrote {dest} ({len(out_rows)} rows; missing pairs: {len(missing)})")
+    print(f"wrote {rel(dest)} ({len(out_rows)} rows; missing pairs: {len(missing)})")
     return 0
 
 
@@ -660,6 +722,8 @@ def main(argv=None) -> int:
     r.add_argument("--compact", default=str(DEFAULT_COMPACT))
     r.add_argument("--eighty-days", default=str(DEFAULT_80DAYS))
     r.add_argument("--run-date", default=None, help="YYYY-MM-DD (default: today)")
+    r.add_argument("--replay", action="store_true",
+                   help="allow a run date other than today (output is stamped REPLAY)")
     r.add_argument("--out", default=str(HERE / "out"))
     args = ap.parse_args(argv)
     return extract(args) if args.cmd == "extract" else run(args)

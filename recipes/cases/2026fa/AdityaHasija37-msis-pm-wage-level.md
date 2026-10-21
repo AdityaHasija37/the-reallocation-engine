@@ -1,7 +1,7 @@
 ---
 status: DRAFT
 todos_open: 6
-last_gate: "sample run on real data, 2026-10-21, logs/runs/2026fa-AdityaHasija37-wage-level-1.md (Gates L, P, S, R, D cleared by Aditya Hasija)"
+last_gate: "sample run on real data, 2026-10-21, logs/runs/2026fa-AdityaHasija37-wage-level-1.md (Gates L and T cleared by the machine and recorded by Aditya Hasija; P, S, R and D cleared by Aditya Hasija)"
 attestation: null
 recipe_version: 0.1.0
 ---
@@ -39,8 +39,9 @@ employer.
 $193,500 in San Francisco. It earns 1 entry if filed as an IT manager and 4 if filed as
 a management analyst. For these three postings, a shortcut using national pay data put
 the level higher than the official city table in 23 of 54 comparisons and never lower.
-Most of that gap stays even after allowing for the national data being a year older, so
-the city, not the year, accounts for most of the error.
+Most of that gap remains even after the national data is scaled up for being a year older.
+That points to the city, rather than the data year, as the larger cause; this is an
+inference, because the percentile mapping behind the shortcut is also approximate.
 
 **Status.** DRAFT. A full run on live postings and official data completed. Six
 proposed additions are still open, and the lifecycle does not allow skipping the
@@ -54,7 +55,7 @@ a human report (`out/report.md`) and an agent log (`out/run-log.json`).
 
 **Handoff condition (done when):** `wage_level.py run` exits `0`; `out/run-log.json` and
 `out/report.md` both exist (both are rendered before either is written); every scenario has exactly one `route` in {`leveled`,
-`stop-liveness`, `stop-pay-basis`, `stop-worksite`} with a `reason` when stopped; every
+`stop-liveness`, `stop-pay-basis`, `stop-pay-range`, `stop-worksite`} with a `reason` when stopped; every
 leveled row's `level` traces to a row of the committed OFLC extract whose sha256
 matches its provenance file; every `selection_probability` is `null`; the report's
 first section is `## Executive summary`; and the offline test suite passes. "The report
@@ -98,8 +99,8 @@ or as legal advice about a petition.
 | Posting liveness | `npm run ats:liveness -- "<posting url>"` (repo script, unchanged) | record | `uncertain` counts as closed |
 | Repo conformance and privacy | `npm run verify`, `npm run doctor` | machine | Both exit 0 |
 | Leveling logic | `python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/wage_level.py run` | n/a | Read the report |
-| Tests | `python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/test_wage_level.py` | n/a | 31/31 pass (Python 3.13 and 3.12) |
-| Independent cross-check | `python3 …/xcheck_raw.py …` (recomputes every level from the raw OFLC file) | n/a | 0 mismatches |
+| Tests | `python3 scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/test_wage_level.py` | n/a | 38/38 pass (Python 3.13 and 3.12) |
+| Independent cross-check | `python3 …/xcheck_raw.py …` (recomputes every row's four annual wages, level, entries and gap from the raw OFLC file, without importing the mode) | n/a | 0 mismatches |
 | Vintage sensitivity | `python3 …/sensitivity_vintage.py` (re-counts proxy disagreements with national wages scaled up 0–20%) | derived | Read the table |
 | Policy citations | `…/data/policy-sources.json` (Federal Register citations, retrieved 2026-10-21) | record | Gate R |
 | Persona | `…/fixtures/persona.fixture.json` | your-input | OPT start date |
@@ -119,7 +120,7 @@ file where its absence bites.
 |---|---|---|---|
 | OFLC wage-year tables (`fetch-oflc.sh` + `wage_level.py extract`) | data source | **built, ran** (pinned sha256, provenance file) | The repo has only *national* OEWS; the lottery level is set by the *area* table. Without it, every level is a guess that ran high in SF and Seattle (23/54 here). The extract also carries 13-1161 and 15-2031, ready for a product-analyst run, and San Jose, used by the "High Wage" refusal test; neither is in this run's scenarios. |
 | `sensitivity_vintage.py` | command | **built, ran** | Tests whether the proxy's error is just the one-year data gap (it isn't: 18/54 still overstate at +10%). |
-| `wage_level.py run` | command | **built, ran** (26 tests) | Turns a posted range into entries per SOC; nothing in the repo connects salary to the 2026 weighted lottery. |
+| `wage_level.py run` | command | **built, ran** (38 tests) | Turns a posted range into entries per SOC; nothing in the repo connects salary to the 2026 weighted lottery. |
 | OFLC LCA disclosure data | DATA SOURCE | proposed (see *Cannot verify*) | Records which SOC and level each employer actually filed for each title, which turns Gate S from a judgment into a record. |
 | `lca-soc-lookup.py` | DEV | proposed | Employer × title → filed SOC/level distribution; replaces the hand-set candidate list. |
 | USCIS registration and selection counts by wage level | DATA SOURCE | proposed | The only honest basis for a selection probability; until then the mode refuses to give one. |
@@ -147,10 +148,11 @@ level shown.
 
 | Gate | Testable condition | Pass | Fail | Who clears |
 |---|---|---|---|---|
-| **L — liveness** (scenario) | `liveness.status == "active"` **and** `liveness.checked_on` equals the run date **and** the `liveness.evidence` file (the saved `npm run ats:liveness -- <url>` output) exists in the repo (all three enforced by the script) | scenario leveled | `expired` / `uncertain`, a check from another day, or no evidence file → `stop-liveness` | machine; human records it |
-| **P — pay basis** (scenario) | `pay.basis == "base"` **and** `pay.basis_confirmed_by` is a named person who read `pay.quoted_text` | scenario leveled | OTE/commission/total-comp/unknown, or unconfirmed → `stop-pay-basis` | named human |
+| **L — liveness** (scenario) | `liveness.status == "active"`, `liveness.checked_on` equals the run date, and the `liveness.evidence` file, a saved `npm run ats:liveness -- <url>` capture **inside the repo**, contains `# run at <checked_on>` and the line `✅ active <posting_url>` for this scenario's URL. The script parses the file; it does not trust the typed status alone. | scenario leveled | `expired` / `uncertain`, a check from another day, an evidence file outside the repo, missing, or not showing this URL active → `stop-liveness` | machine; human records it |
+| **P — pay basis** (scenario) | `pay.basis == "base"` **and** `pay.basis_confirmed_by` is a name (≥ 3 characters including a letter) of the person who read `pay.quoted_text`; `pay.low`/`pay.high` are numbers with 0 < low ≤ high | scenario leveled | OTE/commission/total-comp/unknown, or unconfirmed → `stop-pay-basis`; malformed or inverted range → `stop-pay-range` | named human |
 | **S — SOC candidate set** (run) | `soc_candidates.codes` non-empty, `soc_candidates.set_by` names a person, and every code exists in the OFLC extract (all enforced) | run proceeds | any of these fails → exit 2, nothing written | named human |
-| **R — rule in force** (run) | `rule-check.json` has `regime_in_force`, `checked_on` (0–30 days before the run), `checked_by`, `how`; the regime is `current-2005` (the only regime the 2026-27 OFLC file encodes) | run proceeds | any field missing, stale, or a newer regime → exit 2, nothing written | named human |
+| **R — rule in force** (run) | `rule-check.json` has `regime_in_force`, `checked_on` (a `YYYY-MM-DD` date 0–30 days before the run), `checked_by` (a name: ≥ 3 characters including a letter), `how`; the regime is `current-2005` (the only regime the 2026-27 OFLC file encodes) | run proceeds | any field missing, blank, malformed, stale, or a newer regime → exit 2, nothing written | named human |
+| **Run date** (run) | `--run-date` is today. Freshness gates (L, R) are measured against the run date, so a back- or forward-dated run requires `--replay`, and the log and report are then stamped **REPLAY** | run proceeds | not today and no `--replay`, or not `YYYY-MM-DD` → exit 2 | machine |
 | **T — timeline** (run) | ≥ 1 lottery season remains before OPT/STEM OPT ends | run proceeds | 0 seasons, or bad OPT date → exit 2 | machine |
 | **D — release** | A named person has read `out/report.md`, including "What this cannot tell you", before using it with an employer | use the report | no use | named human |
 
@@ -251,26 +253,30 @@ lottery window is not "lower priority"; it is out.
 | `cognitive_pivot_score` is blank for 15-2051.00 and 15-1299.00 in the compact extract | Shown as `—`; no sub-occupation's score is substituted |
 | `role_quality` weight is 0.0 in the repo scorer; `bls:local-wage` needs metro files that do not ship | Neither is used; this mode does not feed the Apply/Consider/Skip scorer |
 | The level rule may change (DOL NPRM 2026-03-27) | Gate R before every run; the run refuses a newer regime with the current OFLC file |
+| The extract's tamper check compares it with its own provenance file | The provenance file's zip hash must also equal the pin in `checksums.lock`. Editing all three files together would still pass, and only `xcheck_raw.py` (a recompute from the raw download) catches that. Disclosed, not solved. |
+| Gate signers are free text | A name rule rejects blank and one-letter signers; it cannot verify that the named person really looked (see the false-confirmation break run) |
 
 ## Output contract
 
 Two artifacts, two readers, in `--out` (default `scripts/contrib/2026fa/AdityaHasija37-msis-pm-wage-level/out/`).
 
-**`run-log.json` (agent).** Top level: `_recipe`, `_script`, `version`, `run_date`,
-`inputs` {persona, scenarios, rule_check, oflc_extract {path, sha256}, national_oews,
+**`run-log.json` (agent).** Top level: `_recipe`, `_script`, `version`, `run_date`, `mode`
+(`live` or a `replay: …` note),
+`inputs` {persona, scenarios, rule_check, oflc_extract {path, sha256, matches_provenance}, national_oews,
 compact, eighty_days}, `gates` {timeline {opt_start, opt_end, seasons[], source},
 rule_check}, `soc_candidates` {codes, set_by, reason}, `summary` {scenarios, leveled,
 stopped, stopped_by{}, rows, refused_rows, below_level_I_rows, proxy_compared,
-proxy_disagrees}, `scenarios[]`, `cannot_verify[]`.
+proxy_disagrees, proxy_overstates, proxy_understates}, `scenarios[]`, `cannot_verify[]`.
 
 Each `scenarios[]` item: `id`, `company`, `title`, `posting_url`, `worksite`, `pay`,
 `liveness`, `sponsorship_80days` (record, or `null` + "no trace"), `route`, `reason`,
 `selection_probability: null` + note, `spread` {low|mid|high: {min_entries,
 max_entries, below_level_I_socs}}, and `rows[]`. Each row: `soc`, `soc_title`,
 `offer_point`, `salary`, `salary_source`, `oflc` {status, reason, levels{I..IV}, source},
-`level`, `entries`, `gap_to_next` {next_level, needs, gap}, `national_proxy` {brackets
-{current-2005, proposed-2026-nprm: {min, max, exact}}, source}, `proxy_disagrees`,
-`cognitive_pivot_score`, `cognitive_pivot_source`.
+`level`, `entries`, `entries_note` (set when below Level I), `gap_to_next` {next_level,
+needs, gap}, `national_proxy` {brackets {current-2005, proposed-2026-nprm: {min, max,
+exact}}, source}, `proxy_disagrees`, `proxy_direction` (`overstates` / `understates` /
+`agrees`), `cognitive_pivot_score`, `cognitive_pivot_source`.
 
 **`report.md` (person).** `## Executive summary` first (what was checked, the spread of
 entries across job codes, how often the national shortcut disagreed, what it cannot tell
@@ -290,19 +296,23 @@ Template for one scenario table row:
 ## Stop conditions
 
 Stop, write nothing, exit `2`:
-- Gate R fails (missing field, older than 30 days, future date, or a regime other than
-  `current-2005` with the 2026-27 file);
+- `--run-date` is not `YYYY-MM-DD`, or is not today and `--replay` was not given;
+- Gate R fails (missing or blank field, `checked_by` not a name, `checked_on` not
+  `YYYY-MM-DD`, older than 30 days, future date, or a regime other than `current-2005`
+  with the 2026-27 file);
 - Gate T fails (no season left, OPT start missing or not `YYYY-MM-DD`);
 - the persona, scenarios or rule-check file is missing or not valid JSON; the SOC set is empty, unsigned, or names a code that is not in the extract (Gate S);
 - any data file (OFLC extract, national OEWS, compact, 80 Days) is missing;
-- the OFLC extract's sha256 does not match its provenance file (the extract was edited
-  after extraction; added 2026-10-21 after a break test showed the run levelled a
-  hand-edited extract).
+- the OFLC extract's sha256 does not match its provenance file, or the provenance zip
+  hash does not match `checksums.lock` (added 2026-10-21 after a break test showed the
+  run levelled a hand-edited extract).
 
 Do not level the scenario, and say why in the report:
-- liveness is anything but `active`, was checked on a day other than the run date, or has no saved evidence file (`stop-liveness`);
-- the pay range is not confirmed base salary (`stop-pay-basis`);
-- the worksite has no OFLC area (`stop-worksite`).
+- liveness is anything but `active`, was checked on a day other than the run date, or its
+  evidence file is outside the repo, missing, or doesn't show this URL active (`stop-liveness`);
+- the pay range is not confirmed base salary by a named person (`stop-pay-basis`);
+- the pay range is not two numbers with 0 < low ≤ high (`stop-pay-range`);
+- the worksite has no OFLC area, or its area has no rows in the extract (`stop-worksite`).
 
 Do not level the row, and say why:
 - the OFLC row is `High Wage`, `No Leveled Wage`, has an empty level, or is missing.
@@ -322,6 +332,7 @@ Refuse requests to:
 | A code at `below-I` (`0*`) | That code cannot support this salary; if the employer intends it, the salary must rise |
 | Gap to next level ≤ ~5% of salary | A negotiation point with a concrete number behind it |
 | `stop-pay-basis` | Ask the recruiter for the base component, then re-run |
+| `stop-pay-range` | Fix the transcription from the posting's pay sentence |
 | `stop-liveness` | Nothing; skipping is a successful outcome |
 | OFLC row refused | Ask the employer; do not substitute |
 

@@ -1,6 +1,10 @@
 ## 2026-10-21 — msis-pm-wage-level run 1
 
+### Executive summary
+
 Run 1 of the wage-level mode on live data: 3 live PM postings (4 posting-city scenarios) in SF and Seattle against official DOL wage levels. 3 scenarios were levelled and 1 refused (commission-inclusive pay). The same salary earned 1–4 lottery entries depending on the employer's job code. For these postings national data overstated the level 23/54 times (18/54 after a +10% data-age allowance). All gates were cleared by Aditya Hasija.
+
+### Record
 
 - **Recipe:** recipes/cases/2026fa/AdityaHasija37-msis-pm-wage-level.md v0.1.0 (DRAFT, 6 TODOs open); attestation in course/2026fa/submissions/AdityaHasija37/mode-build/WORKED-RUN.md, bound to recipe sha256 a35d00abde7b8135…
 - **Inputs:** OFLC 2026-27 extract sha256 ce8e3eda94a9518a… (zip edc01f64e2f805ef…, `fetch-oflc.sh`, pinned); `fixtures/scenarios.2026-10-21.json` (Greenhouse API, captured 2026-10-21; postings chosen with an uncommitted scratch script, logged here); persona (OPT start 2027-01-15, your-input, assumed); SOC set 11-2021, 11-3021, 13-1111, 15-1211, 15-1299, 15-2051, signed by Aditya Hasija; policy citations `data/policy-sources.json`
